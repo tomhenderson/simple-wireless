@@ -253,7 +253,7 @@ main (int argc, char *argv[])
         {
           Config::SetDefault ("ns3::DropTailQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
           Config::SetDefault ("ns3::DropTailQueue::MaxPackets", UintegerValue (100));
-          Ptr<DropTailQueue> queue = CreateObject<DropTailQueue> ();
+          Ptr<DropTailQueue<Packet>> queue = CreateObject<DropTailQueue<Packet>> ();
           simpleWireless->SetQueue (queue);
         }
       else if (queueType == "PriorityHead")
@@ -274,8 +274,8 @@ main (int argc, char *argv[])
           Config::SetDefault ("ns3::PriorityQueue::ControlPacketClassifier", StringValue ("port 698"));
           Config::SetDefault ("ns3::DropTailQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
           Config::SetDefault ("ns3::DropTailQueue::MaxPackets", UintegerValue (100));
-          Ptr<DropTailQueue> controlQueue = CreateObject<DropTailQueue> ();
-          Ptr<DropTailQueue> dataQueue = CreateObject<DropTailQueue> ();
+          Ptr<DropTailQueue<Packet>> controlQueue = CreateObject<DropTailQueue<Packet>> ();
+          Ptr<DropTailQueue<Packet>> dataQueue = CreateObject<DropTailQueue<Packet>> ();
           Ptr<PriorityQueue> queue = CreateObject<PriorityQueue> ();
           queue->Initialize ();
           queue->SetControlQueue (controlQueue);

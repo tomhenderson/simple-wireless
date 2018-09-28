@@ -426,7 +426,7 @@ main (int argc, char *argv[])
   Ptr<NetDevice> dev = devices.Get (0);
   PointerValue val;
   dev->GetAttribute ("TxQueue", val);
-  Ptr<Queue> queue = val.Get<Queue>();
+  Ptr<Queue<Packet>> queue = val.Get<Queue<Packet>>();
   Ptr<DropHeadQueue> dropHead = DynamicCast<DropHeadQueue> (queue);
   std::cout << "Packets Dropped at Queue on Node 0: " << dropHead->GetTotalDroppedPackets () << std::endl;
 
