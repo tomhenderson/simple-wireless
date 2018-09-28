@@ -28,23 +28,23 @@ NS_LOG_COMPONENT_DEFINE ("DropHeadQueue");
 
 NS_OBJECT_ENSURE_REGISTERED (DropHeadQueue);
 
-TypeId DropHeadQueue::GetTypeId (void) 
+TypeId DropHeadQueue::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::DropHeadQueue")
     .SetParent<Queue> ()
     .AddConstructor<DropHeadQueue> ()
-    .AddAttribute ("Mode", 
+    .AddAttribute ("Mode",
                    "Whether to use bytes (see MaxBytes) or packets (see MaxPackets) as the maximum queue size metric.",
                    EnumValue (QUEUE_MODE_PACKETS),
                    MakeEnumAccessor (&DropHeadQueue::SetMode),
                    MakeEnumChecker (QUEUE_MODE_BYTES, "QUEUE_MODE_BYTES",
                                     QUEUE_MODE_PACKETS, "QUEUE_MODE_PACKETS"))
-    .AddAttribute ("MaxPackets", 
+    .AddAttribute ("MaxPackets",
                    "The maximum number of packets accepted by this DropHeadQueue.",
                    UintegerValue (100),
                    MakeUintegerAccessor (&DropHeadQueue::m_maxPackets),
                    MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("MaxBytes", 
+    .AddAttribute ("MaxBytes",
                    "The maximum number of bytes accepted by this DropHeadQueue.",
                    UintegerValue (100 * 65535),
                    MakeUintegerAccessor (&DropHeadQueue::m_maxBytes),
@@ -81,7 +81,7 @@ DropHeadQueue::GetMode (void)
   return m_mode;
 }
 
-bool 
+bool
 DropHeadQueue::DoEnqueue (Ptr<Packet> p)
 {
   NS_LOG_FUNCTION (this << p);
@@ -89,7 +89,7 @@ DropHeadQueue::DoEnqueue (Ptr<Packet> p)
   if (m_mode == QUEUE_MODE_PACKETS && (m_packets.size () >= m_maxPackets))
     {
       NS_LOG_LOGIC ("Queue full (at max packets) -- droppping pkt");
-      Ptr<Packet> head_packet = Dequeue();
+      Ptr<Packet> head_packet = Dequeue ();
       Drop (head_packet);
     }
 
@@ -99,7 +99,7 @@ DropHeadQueue::DoEnqueue (Ptr<Packet> p)
       while (m_bytesInQueue + p->GetSize () >= m_maxBytes)
         {
           NS_LOG_LOGIC ("Queue full (packet would exceed max bytes) -- droppping pkt");
-          Ptr<Packet> head_packet = Dequeue();
+          Ptr<Packet> head_packet = Dequeue ();
           Drop (head_packet);
         }
     }

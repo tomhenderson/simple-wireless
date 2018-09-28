@@ -33,7 +33,8 @@ class TraceContainer;
  *
  * \brief A FIFO packet queue that drops head-end packets on overflow
  */
-class DropHeadQueue : public Queue {
+class DropHeadQueue : public Queue
+{
 public:
   /**
    * \brief Get the type ID.
@@ -47,7 +48,7 @@ public:
    */
   DropHeadQueue ();
 
-  virtual ~DropHeadQueue();
+  virtual ~DropHeadQueue ();
 
   /**
    * Set the operating mode of this device.

@@ -35,7 +35,8 @@ class TraceContainer;
  *
  * \brief A strict priority queue with two subqueues, one for control packets and one for data
  */
-class PriorityQueue : public Queue {
+class PriorityQueue : public Queue
+{
 public:
   /**
    * \brief Get the type ID.
@@ -49,7 +50,7 @@ public:
    */
   PriorityQueue ();
 
-  virtual ~PriorityQueue();
+  virtual ~PriorityQueue ();
 
   /**
    * \brief PriorityQueue Constructor
@@ -61,7 +62,7 @@ public:
   /**
    * Attach a queue to hold data packets to the PriorityQueue.
    *
-   * The PriorityQueue "owns" a sub queue that implements a queueing 
+   * The PriorityQueue "owns" a sub queue that implements a queueing
    * method such as DropTailQueue, DropHeadQueue or RedQueue
    *
    * \param queue Ptr to the new queue.
@@ -71,7 +72,7 @@ public:
   /**
    * Attach a queue to hold control packets to the PriorityQueue.
    *
-   * The PriorityQueue "owns" a sub queue that implements a queueing 
+   * The PriorityQueue "owns" a sub queue that implements a queueing
    * method such as DropTailQueue, DropHeadQueue or RedQueue
    *
    * \param queue Ptr to the new queue.

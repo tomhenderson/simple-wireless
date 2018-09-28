@@ -30,23 +30,23 @@ NS_LOG_COMPONENT_DEFINE ("PriorityQueue");
 
 NS_OBJECT_ENSURE_REGISTERED (PriorityQueue);
 
-TypeId PriorityQueue::GetTypeId (void) 
+TypeId PriorityQueue::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::PriorityQueue")
     .SetParent<Queue> ()
     .AddConstructor<PriorityQueue> ()
-    
-    .AddAttribute ("ControlQueue", 
+
+    .AddAttribute ("ControlQueue",
                    "A queue to use as the transmit queue in the device.",
                    PointerValue (),
                    MakePointerAccessor (&PriorityQueue::m_controlQueue),
                    MakePointerChecker<Queue> ())
-    .AddAttribute ("DataQueue", 
+    .AddAttribute ("DataQueue",
                    "A queue to use as the transmit queue in the device.",
                    PointerValue (),
                    MakePointerAccessor (&PriorityQueue::m_dataQueue),
                    MakePointerChecker<Queue> ())
-    .AddAttribute ("ControlPacketClassifier", 
+    .AddAttribute ("ControlPacketClassifier",
                    "Pcap style filter to classify control packets",
                    StringValue (),
                    MakeStringAccessor (&PriorityQueue::m_classifier),
@@ -100,20 +100,20 @@ PriorityQueue::SetDataQueue (Ptr<Queue> q)
 }
 
 Ptr<Queue>
-PriorityQueue::GetControlQueue (void) const 
-{ 
+PriorityQueue::GetControlQueue (void) const
+{
   NS_LOG_FUNCTION_NOARGS ();
   return m_controlQueue;
 }
 
 Ptr<Queue>
-PriorityQueue::GetDataQueue (void) const 
-{ 
+PriorityQueue::GetDataQueue (void) const
+{
   NS_LOG_FUNCTION_NOARGS ();
   return m_dataQueue;
 }
 
-PriorityQueue::PacketClass 
+PriorityQueue::PacketClass
 PriorityQueue::Classify (Ptr<const Packet> p)
 {
   pcap_pkthdr pcapPkthdr;
@@ -136,7 +136,7 @@ PriorityQueue::Classify (Ptr<const Packet> p)
     }
 }
 
-bool 
+bool
 PriorityQueue::DoEnqueue (Ptr<Packet> p)
 {
   NS_LOG_FUNCTION (this << p);
