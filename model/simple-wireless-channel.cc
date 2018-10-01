@@ -190,14 +190,14 @@ SimpleWirelessChannel::Add (Ptr<SimpleWirelessNetDevice> device)
   m_devices.push_back (device);
 }
 
-uint32_t
+std::size_t
 SimpleWirelessChannel::GetNDevices (void) const
 {
   return m_devices.size ();
 }
 
 Ptr<NetDevice>
-SimpleWirelessChannel::GetDevice (uint32_t i) const
+SimpleWirelessChannel::GetDevice (std::size_t i) const
 {
   return m_devices[i];
 }

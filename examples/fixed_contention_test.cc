@@ -227,9 +227,8 @@ main (int argc, char *argv[])
       simpleWireless->SetAddress (Mac48Address::Allocate ());
       simpleWireless->SetDataRate ((DataRate (dataRate)));
 
-      Config::SetDefault ("ns3::DropHeadQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-      Config::SetDefault ("ns3::DropHeadQueue::MaxPackets", UintegerValue (100));
-      Ptr<DropHeadQueue> queue = CreateObject<DropHeadQueue> ();
+      Ptr<DropHeadQueue<Packet>> queue = CreateObject<DropHeadQueue<Packet>> ();
+      queue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
       simpleWireless->SetQueue (queue);
 
       // Set up trace to pass node id on the RX end
@@ -387,7 +386,7 @@ main (int argc, char *argv[])
   PointerValue val;
   dev->GetAttribute ("TxQueue", val);
   Ptr<Queue<Packet>> queue = val.Get<Queue<Packet>>();
-  Ptr<DropHeadQueue> dropHead = DynamicCast<DropHeadQueue> (queue);
+  Ptr<DropHeadQueue<Packet>> dropHead = DynamicCast<DropHeadQueue<Packet>> (queue);
   std::cout << "Packets Dropped at Queue on Node 0: " << dropHead->GetTotalDroppedPackets () << std::endl;
 
   for (int i = 1; i < NUM_NODES; i++)

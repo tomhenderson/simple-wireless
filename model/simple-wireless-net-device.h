@@ -158,14 +158,14 @@ public:
  * @see DropTailQueue
  * @param queue Ptr to the new queue.
  */
-  void SetQueue (Ptr<Queue> queue);
+  void SetQueue (Ptr<Queue<Packet> > queue);
 
   /**
    * Get a copy of the attached Queue.
    *
    * @returns Ptr to the queue.
    */
-  Ptr<Queue> GetQueue (void) const;
+  Ptr<Queue<Packet> > GetQueue (void) const;
 
   //******************************************
   // Directional Neighbor functions
@@ -211,6 +211,24 @@ public:
 
   virtual void SetPromiscReceiveCallback (PromiscReceiveCallback cb);
   virtual bool SupportsSendFrom (void) const;
+
+  /**
+   * TracedCallback signature for packet events
+   *
+   * \param [in] p Packet pointer
+   * \param [in] from The sender address
+   * \param [in] to The receiver address
+   * \param [in] proto The protocol number
+   */
+  typedef void (*PacketEventTracedCallback)(Ptr<const Packet> p, Mac48Address from, Mac48Address to, uint16_t proto);
+
+  /**
+   * TracedCallback signature for queue latency reports
+   *
+   * \param [in] p Packet pointer
+   * \param [in] latency The observed latency
+   */
+  typedef void (*QueueLatencyTracedCallback)(Ptr<const Packet> p, Time latency);
 
 protected:
   virtual void DoDispose (void);
@@ -275,7 +293,7 @@ private:
  * @see class Queue
  * @see class DropTailQueue
  */
-  Ptr<Queue> m_queue;
+  Ptr<Queue<Packet> > m_queue;
 
   /**
    * The trace source fired when a packet begins the reception process from

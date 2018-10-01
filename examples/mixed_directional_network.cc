@@ -135,9 +135,8 @@ main (int argc, char *argv[])
       simpleWireless1->SetDataRate ((DataRate (dataRate)));
 
       // Set queue type to use
-      Config::SetDefault ("ns3::DropHeadQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-      Config::SetDefault ("ns3::DropHeadQueue::MaxPackets", UintegerValue (100));
-      Ptr<DropHeadQueue> queue = CreateObject<DropHeadQueue> ();
+      Ptr<DropHeadQueue<Packet>> queue = CreateObject<DropHeadQueue<Packet>> ();
+      queue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
       simpleWireless1->SetQueue (queue);
 
       node->AddDevice (simpleWireless1);
@@ -170,9 +169,8 @@ main (int argc, char *argv[])
           std::cout << "node id " << id << " has macAddress of " << simpleWireless2->GetAddress () << std::endl;
 
           // Set queue type to use
-          Config::SetDefault ("ns3::DropHeadQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-          Config::SetDefault ("ns3::DropHeadQueue::MaxPackets", UintegerValue (100));
-          Ptr<DropHeadQueue> queue = CreateObject<DropHeadQueue> ();
+          Ptr<DropHeadQueue<Packet>> queue = CreateObject<DropHeadQueue<Packet>> ();
+          queue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
           simpleWireless2->SetQueue (queue);
 
           node->AddDevice (simpleWireless2);

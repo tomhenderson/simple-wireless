@@ -1,6 +1,5 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (C) 2015 Massachusetts Institute of Technology
  * Copyright (c) 2007 University of Washington
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,23 +16,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef DROPHEAD_H
-#define DROPHEAD_H
+#ifndef DROP_HEAD_QUEUE_H
+#define DROP_HEAD_QUEUE_H
 
-#include <queue>
-#include "ns3/packet.h"
 #include "ns3/queue.h"
 
 namespace ns3 {
 
-class TraceContainer;
-
 /**
  * \ingroup queue
  *
- * \brief A FIFO packet queue that drops head-end packets on overflow
+ * \brief A FIFO packet queue that drops packets at the head of the queue on overflow
  */
-class DropHeadQueue : public Queue
+template <typename Item>
+class DropHeadQueue : public Queue<Item>
 {
 public:
   /**
@@ -44,39 +40,103 @@ public:
   /**
    * \brief DropHeadQueue Constructor
    *
-   * Creates a drophead queue with a maximum size of 100 packets by default
+   * Creates a droptail queue with a maximum size of 100 packets by default
    */
   DropHeadQueue ();
 
   virtual ~DropHeadQueue ();
 
-  /**
-   * Set the operating mode of this device.
-   *
-   * \param mode The operating mode of this device.
-   *
-   */
-  void SetMode (DropHeadQueue::QueueMode mode);
-
-  /**
-   * Get the encapsulation mode of this device.
-   *
-   * \returns The encapsulation mode of this device.
-   */
-  DropHeadQueue::QueueMode GetMode (void);
+  virtual bool Enqueue (Ptr<Item> item);
+  virtual Ptr<Item> Dequeue (void);
+  virtual Ptr<Item> Remove (void);
+  virtual Ptr<const Item> Peek (void) const;
 
 private:
-  virtual bool DoEnqueue (Ptr<Packet> p);
-  virtual Ptr<Packet> DoDequeue (void);
-  virtual Ptr<const Packet> DoPeek (void) const;
+  using Queue<Item>::Head;
+  using Queue<Item>::Tail;
+  using Queue<Item>::DoEnqueue;
+  using Queue<Item>::DoDequeue;
+  using Queue<Item>::DoRemove;
+  using Queue<Item>::DoPeek;
 
-  std::queue<Ptr<Packet> > m_packets; //!< the packets in the queue
-  uint32_t m_maxPackets;              //!< max packets in the queue
-  uint32_t m_maxBytes;                //!< max bytes in the queue
-  uint32_t m_bytesInQueue;            //!< actual bytes in the queue
-  QueueMode m_mode;                   //!< queue mode (packets or bytes limited)
+  NS_LOG_TEMPLATE_DECLARE;     //!< redefinition of the log component
 };
+
+
+/**
+ * Implementation of the templates declared above.
+ */
+
+template <typename Item>
+TypeId
+DropHeadQueue<Item>::GetTypeId (void)
+{
+  static TypeId tid = TypeId (("ns3::DropHeadQueue<" + GetTypeParamName<DropHeadQueue<Item> > () + ">").c_str ())
+    .SetParent<Queue<Item> > ()
+    .SetGroupName ("Network")
+    .template AddConstructor<DropHeadQueue<Item> > ()
+  ;
+  return tid;
+}
+
+template <typename Item>
+DropHeadQueue<Item>::DropHeadQueue () :
+  Queue<Item> (),
+  NS_LOG_TEMPLATE_DEFINE ("DropHeadQueue")
+{
+  NS_LOG_FUNCTION (this);
+}
+
+template <typename Item>
+DropHeadQueue<Item>::~DropHeadQueue ()
+{
+  NS_LOG_FUNCTION (this);
+}
+
+template <typename Item>
+bool
+DropHeadQueue<Item>::Enqueue (Ptr<Item> item)
+{
+  NS_LOG_FUNCTION (this << item);
+
+  return DoEnqueue (Tail (), item);
+}
+
+template <typename Item>
+Ptr<Item>
+DropHeadQueue<Item>::Dequeue (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  Ptr<Item> item = DoDequeue (Head ());
+
+  NS_LOG_LOGIC ("Popped " << item);
+
+  return item;
+}
+
+template <typename Item>
+Ptr<Item>
+DropHeadQueue<Item>::Remove (void)
+{
+  NS_LOG_FUNCTION (this);
+
+  Ptr<Item> item = DoRemove (Head ());
+
+  NS_LOG_LOGIC ("Removed " << item);
+
+  return item;
+}
+
+template <typename Item>
+Ptr<const Item>
+DropHeadQueue<Item>::Peek (void) const
+{
+  NS_LOG_FUNCTION (this);
+
+  return DoPeek (Head ());
+}
 
 } // namespace ns3
 
-#endif /* DROPHEAD_H */
+#endif /* DROP_HEAD_QUEUE_H */

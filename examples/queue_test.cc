@@ -244,26 +244,24 @@ main (int argc, char *argv[])
       // Set queue type to use. Set nothing if NoQueue
       if (queueType == "DropHead")
         {
-          Config::SetDefault ("ns3::DropHeadQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-          Config::SetDefault ("ns3::DropHeadQueue::MaxPackets", UintegerValue (100));
-          Ptr<DropHeadQueue> queue = CreateObject<DropHeadQueue> ();
+          Ptr<DropHeadQueue<Packet>> queue = CreateObject<DropHeadQueue<Packet>> ();
+          queue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
           simpleWireless->SetQueue (queue);
         }
       else if (queueType == "DropTail")
         {
-          Config::SetDefault ("ns3::DropTailQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-          Config::SetDefault ("ns3::DropTailQueue::MaxPackets", UintegerValue (100));
           Ptr<DropTailQueue<Packet>> queue = CreateObject<DropTailQueue<Packet>> ();
+          queue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
           simpleWireless->SetQueue (queue);
         }
       else if (queueType == "PriorityHead")
         {
           Config::SetDefault ("ns3::PriorityQueue::ControlPacketClassifier", StringValue ("port 698"));
-          Config::SetDefault ("ns3::DropHeadQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-          Config::SetDefault ("ns3::DropHeadQueue::MaxPackets", UintegerValue (100));
-          Ptr<DropHeadQueue> controlQueue = CreateObject<DropHeadQueue> ();
-          Ptr<DropHeadQueue> dataQueue = CreateObject<DropHeadQueue> ();
-          Ptr<PriorityQueue> queue = CreateObject<PriorityQueue> ();
+          Ptr<DropHeadQueue<Packet>> controlQueue = CreateObject<DropHeadQueue<Packet>> ();
+          controlQueue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
+          Ptr<DropHeadQueue<Packet>> dataQueue = CreateObject<DropHeadQueue<Packet>> ();
+          dataQueue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
+          Ptr<PriorityQueue<Packet>> queue = CreateObject<PriorityQueue<Packet>> ();
           queue->Initialize ();
           queue->SetControlQueue (controlQueue);
           queue->SetDataQueue (dataQueue);
@@ -272,11 +270,11 @@ main (int argc, char *argv[])
       else if (queueType == "PriorityTail")
         {
           Config::SetDefault ("ns3::PriorityQueue::ControlPacketClassifier", StringValue ("port 698"));
-          Config::SetDefault ("ns3::DropTailQueue::Mode", StringValue ("QUEUE_MODE_PACKETS"));
-          Config::SetDefault ("ns3::DropTailQueue::MaxPackets", UintegerValue (100));
           Ptr<DropTailQueue<Packet>> controlQueue = CreateObject<DropTailQueue<Packet>> ();
+          controlQueue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
           Ptr<DropTailQueue<Packet>> dataQueue = CreateObject<DropTailQueue<Packet>> ();
-          Ptr<PriorityQueue> queue = CreateObject<PriorityQueue> ();
+          dataQueue->SetMaxSize (QueueSize (QueueSizeUnit::PACKETS, 100));
+          Ptr<PriorityQueue<Packet>> queue = CreateObject<PriorityQueue<Packet>> ();
           queue->Initialize ();
           queue->SetControlQueue (controlQueue);
           queue->SetDataQueue (dataQueue);

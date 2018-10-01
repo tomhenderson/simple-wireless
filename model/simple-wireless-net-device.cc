@@ -174,7 +174,7 @@ SimpleWirelessNetDevice::GetTypeId (void)
                    "A queue to use as the transmit queue in the device.",
                    PointerValue (),
                    MakePointerAccessor (&SimpleWirelessNetDevice::m_queue),
-                   MakePointerChecker<Queue> ())
+                   MakePointerChecker<Queue<Packet> > ())
     .AddAttribute ("FixedNeighborListEnabled",
                    "Enabled or Disabled",
                    BooleanValue (false),
@@ -182,35 +182,42 @@ SimpleWirelessNetDevice::GetTypeId (void)
                    MakeBooleanChecker ())
     .AddTraceSource ("PhyTxBegin",
                      "Trace source indicating a packet has begun transmitting",
-                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_TxBeginTrace))
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_TxBeginTrace),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("PhyRxDrop",
                      "Trace source indicating a packet has been dropped by the device during reception",
-                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxDropTrace))
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxDropTrace),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("PhyRxBegin",
                      "Trace source indicating a packet "
                      "has begun being received from the channel medium "
                      "by the device",
-                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxBeginTrace))
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxBeginTrace),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("PhyRxEnd",
                      "Trace source indicating a packet "
                      "has been completely received from the channel medium "
                      "by the device",
-                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxEndTrace))
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxEndTrace),
+                     "ns3::Packet::TracedCallback")
     // Trace sources designed to simulate a packet sniffer facility (tcpdump).
     .AddTraceSource ("PromiscSniffer",
                      "Trace source simulating a promiscuous packet sniffer attached to the device",
-                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_promiscSnifferTrace))
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_promiscSnifferTrace),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("QueueLatency",
                      "Trace source to report the latency of a packet in the queue. Datatype returned is Time.",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_QueueLatencyTrace))
     .AddTraceSource ("MacTx",
                      "A packet has been received from higher layers and is being processed in preparation for "
                      "queueing for transmission.",
-                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_macTxTrace))
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_macTxTrace),
+                     "ns3::Packet::TracedCallback")
     .AddTraceSource ("MacRx",
                      "A packet has been received by this device, has been passed up from the physical layer "
                      "and is being forwarded up the local protocol stack.  This is a non-promiscuous trace,",
-                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_macRxTrace))
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_macRxTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
@@ -522,7 +529,7 @@ SimpleWirelessNetDevice::TransmitStart (Ptr<Packet> p)
   p->RemovePacketTag (destIdTag);
   uint32_t destId = destIdTag.GetDestinationId ();
 
-  Time txTime = Seconds (m_bps.CalculateTxTime (p->GetSize ()));
+  Time txTime = m_bps.CalculateBytesTxTime (p->GetSize ());
 
   // If we have a non-zero neighbor count then that means we are using contention and
   // the data rate changes. Note that when using contention, we will always have at least
@@ -783,7 +790,7 @@ SimpleWirelessNetDevice::EnqueuePacket (Ptr<Packet> packet, Mac48Address from, M
       packet->RemoveHeader (ethHeader);
 
       m_TxBeginTrace (packet, m_address, to, protocolNumber);
-      Time txTime = Seconds (m_bps.CalculateTxTime (packet->GetSize ()));
+      Time txTime = m_bps.CalculateBytesTxTime (packet->GetSize ());
       // If we have a non-zero neighbor count then that means we are using contention and
       // the data rate changes.
       if (m_nbrCount)
@@ -858,13 +865,13 @@ SimpleWirelessNetDevice::SetDataRate (DataRate bps)
 }
 
 void
-SimpleWirelessNetDevice::SetQueue (Ptr<Queue> q)
+SimpleWirelessNetDevice::SetQueue (Ptr<Queue<Packet> > q)
 {
   NS_LOG_FUNCTION (this << q);
   m_queue = q;
 }
 
-Ptr<Queue>
+Ptr<Queue<Packet> >
 SimpleWirelessNetDevice::GetQueue (void) const
 {
   NS_LOG_FUNCTION_NOARGS ();

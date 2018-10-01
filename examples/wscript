@@ -23,26 +23,27 @@ def build(bld):
         return;
 
     obj = bld.create_ns3_program('queue_test',
-        ['core', 'mobility', 'network', 'internet', 'olsr', 'simple-wireless'])
+        ['core', 'mobility', 'network', 'internet', 'olsr', 'applications', 'simple-wireless'])
     obj.source = 'queue_test.cc'
+    obj.env.append_value("LIB", ["pcap"])
     
     obj = bld.create_ns3_program('directional_test',
-        ['core', 'mobility', 'network', 'internet', 'olsr', 'simple-wireless'])
+        ['core', 'mobility', 'network', 'internet', 'olsr', 'applications', 'simple-wireless'])
     obj.source = 'directional_test.cc'
     
     obj = bld.create_ns3_program('mixed_directional_network',
-        ['core', 'mobility', 'network', 'internet', 'olsr', 'simple-wireless'])
+        ['core', 'mobility', 'network', 'internet', 'olsr', 'applications', 'simple-wireless'])
     obj.source = 'mixed_directional_network.cc'
     
     obj = bld.create_ns3_program('multiple_interface_example',
-        ['core', 'mobility', 'network', 'internet', 'olsr', 'simple-wireless'])
+        ['core', 'mobility', 'network', 'internet', 'olsr', 'applications', 'simple-wireless'])
     obj.source = 'multiple_interface_example.cc'
     
     obj = bld.create_ns3_program('fixed_contention_test',
-        ['core', 'mobility', 'network', 'internet', 'olsr', 'simple-wireless'])
+        ['core', 'mobility', 'network', 'internet', 'olsr', 'applications', 'simple-wireless'])
     obj.source = 'fixed_contention_test.cc'
 
     obj = bld.create_ns3_program('error_model_test',
-        ['core', 'mobility', 'network', 'internet', 'olsr', 'simple-wireless'])
+        ['core', 'mobility', 'network', 'internet', 'olsr', 'applications', 'simple-wireless'])
     obj.source = 'error_model_test.cc'
 
