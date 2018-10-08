@@ -51,6 +51,10 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("error_model_test");
 
+// Add output file streams for collecting program output
+std::ofstream g_fileMacRxSuccess;
+std::ofstream g_filePositions;
+
 uint32_t count_sent = 0;
 // These are only used by OLSR
 uint32_t count_recv = 0;
@@ -92,7 +96,7 @@ static void MacRxSuccess (std::string context, Ptr<const Packet> p)
     {
       pkts_rcvd_by_node[id]++;
       // Uncomment this line for STOCHASTIC so that you can graph packets received vs time
-      std::cout << Simulator::Now ().GetSeconds () << " Node " << id << " receiving packet of " << p->GetSize () << " bytes." << std::endl;
+      g_fileMacRxSuccess << Simulator::Now ().GetSeconds () << " Node " << id << " receiving packet of " << p->GetSize () << " bytes." << std::endl;
     }
 
 
@@ -157,6 +161,12 @@ main (int argc, char *argv[])
     }
 
   std::cout << "Running scenario for " << simtime << " seconds using error type of " << errorModel << std::endl;
+
+  // ***********************************************************************
+  // Open output file descriptors
+  // ***********************************************************************
+  g_fileMacRxSuccess.open ("error-model-test-mac-rx-success.dat", std::ofstream::out);
+  g_filePositions.open ("error-model-test-positions.dat", std::ofstream::out);
 
   // ***********************************************************************
   // Create all the nodes
@@ -283,7 +293,7 @@ main (int argc, char *argv[])
         }
       Vector pos = mob->GetPosition ();
       double distance = sqrt (pos.x * pos.x + pos.y * pos.y);
-      std::cout << "Node " << id << ". Position (" << pos.x << ", " << pos.y << ", " << pos.z << ")  Distance to Node 0: " << distance << std::endl;
+      g_filePositions << "Node " << id << ". Position (" << pos.x << ", " << pos.y << ", " << pos.z << ")  Distance to Node 0: " << distance << std::endl;
     }
 
 
@@ -368,6 +378,8 @@ main (int argc, char *argv[])
 
 
   NS_LOG_INFO ("Run Completed Successfully");
+  g_fileMacRxSuccess.close ();
+  g_filePositions.close ();
 
   return 0;
 }
