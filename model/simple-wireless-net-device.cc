@@ -183,23 +183,23 @@ SimpleWirelessNetDevice::GetTypeId (void)
     .AddTraceSource ("PhyTxBegin",
                      "Trace source indicating a packet has begun transmitting",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_TxBeginTrace),
-                     "ns3::Packet::TracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
     .AddTraceSource ("PhyRxDrop",
                      "Trace source indicating a packet has been dropped by the device during reception",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxDropTrace),
-                     "ns3::Packet::TracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
     .AddTraceSource ("PhyRxBegin",
                      "Trace source indicating a packet "
                      "has begun being received from the channel medium "
                      "by the device",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxBeginTrace),
-                     "ns3::Packet::TracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
     .AddTraceSource ("PhyRxEnd",
                      "Trace source indicating a packet "
                      "has been completely received from the channel medium "
                      "by the device",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxEndTrace),
-                     "ns3::Packet::TracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
     // Trace sources designed to simulate a packet sniffer facility (tcpdump).
     .AddTraceSource ("PromiscSniffer",
                      "Trace source simulating a promiscuous packet sniffer attached to the device",
@@ -207,7 +207,8 @@ SimpleWirelessNetDevice::GetTypeId (void)
                      "ns3::Packet::TracedCallback")
     .AddTraceSource ("QueueLatency",
                      "Trace source to report the latency of a packet in the queue. Datatype returned is Time.",
-                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_QueueLatencyTrace))
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_QueueLatencyTrace),
+                     "ns3::SimpleWirelessNetDevice::QueueLatencyTracedCallback")
     .AddTraceSource ("MacTx",
                      "A packet has been received from higher layers and is being processed in preparation for "
                      "queueing for transmission.",
