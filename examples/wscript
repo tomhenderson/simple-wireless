@@ -47,3 +47,6 @@ def build(bld):
         ['core', 'mobility', 'network', 'internet', 'olsr', 'applications', 'simple-wireless'])
     obj.source = 'error_model_test.cc'
 
+    obj = bld.create_ns3_program('link-performance',
+        ['core', 'mobility', 'network', 'internet', 'applications', 'simple-wireless'])
+    obj.source = 'link-performance.cc'
