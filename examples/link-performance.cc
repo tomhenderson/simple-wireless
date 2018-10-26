@@ -33,17 +33,28 @@
 //    (to be completed)
 //
 
+#include <fstream>
+#include <iostream>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/applications-module.h"
+#include "ns3/propagation-module.h"
 #include "ns3/simple-wireless-channel.h"
 #include "ns3/simple-wireless-net-device.h"
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("LinkPerformanceExample");
+
+std::ofstream g_fileRssi;
+
+void
+ReceiveTrace (Ptr<const Packet> p, double rxPower, Mac48Address from)
+{
+  g_fileRssi << Simulator::Now ().GetSeconds () << " " << rxPower << std::endl;
+}
 
 int
 main (int argc, char *argv[])
@@ -54,6 +65,8 @@ main (int argc, char *argv[])
 
   CommandLine cmd;
   cmd.Parse (argc, argv);
+
+  g_fileRssi.open ("link-performance-rssi.dat", std::ofstream::out);
   
   Ptr<Node> senderNode = CreateObject<Node> ();
   Ptr<Node> receiverNode = CreateObject<Node> ();
@@ -69,8 +82,12 @@ main (int argc, char *argv[])
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (nodes);
 
+  auto lossModel = CreateObject<FriisPropagationLossModel> ();
+  lossModel->SetFrequency (5e9);  // 5 GHz
+
   NetDeviceContainer devices;
   Ptr<SimpleWirelessChannel> channel = CreateObject<SimpleWirelessChannel> ();
+  channel->AddPropagationLossModel (lossModel);
   Ptr<SimpleWirelessNetDevice> senderDevice = CreateObject<SimpleWirelessNetDevice> ();
   senderDevice->SetChannel (channel);
   senderDevice->SetNode (senderNode);
@@ -83,6 +100,7 @@ main (int argc, char *argv[])
   receiverDevice->SetNode (receiverNode);
   receiverDevice->SetAddress (Mac48Address::Allocate ());
   receiverDevice->SetDataRate (dataRate);
+  receiverDevice->TraceConnectWithoutContext ("PhyRxEnd", MakeCallback (&ReceiveTrace));
   receiverNode->AddDevice (receiverDevice);
   devices.Add (receiverDevice);
 
@@ -109,5 +127,6 @@ main (int argc, char *argv[])
 
   Simulator::Run ();
   Simulator::Destroy ();
+  g_fileRssi.close ();
   return 0;
 }
