@@ -25,6 +25,7 @@
 #include "ns3/uinteger.h"
 #include "ns3/ptr.h"
 #include "ns3/mobility-model.h"
+#include "ns3/propagation-loss-model.h"
 #include "simple-wireless-channel.h"
 #include "simple-wireless-net-device.h"
 #include <iomanip>
@@ -93,11 +94,11 @@ SimpleWirelessChannel::SimpleWirelessChannel ()
 }
 
 void
-SimpleWirelessChannel::Send (Ptr<Packet> p, uint16_t protocol,
+SimpleWirelessChannel::Send (Ptr<Packet> p, double txPower, uint16_t protocol,
                              Mac48Address to, Mac48Address from,
                              Ptr<SimpleWirelessNetDevice> sender, Time txTime, uint32_t destId)
 {
-  NS_LOG_FUNCTION (p << protocol << to << from << sender);
+  NS_LOG_FUNCTION (p << txPower << protocol << to << from << sender);
 
   uint32_t senderNodeId = sender->GetNode ()->GetId ();
 
@@ -151,6 +152,12 @@ SimpleWirelessChannel::Send (Ptr<Packet> p, uint16_t protocol,
       // and the error model
       double distance = a->GetDistanceFrom (b);
 
+      double rxPower = txPower;
+      if (m_lossModel)
+        {
+          rxPower = m_lossModel->CalcRxPower (txPower, a, b);
+          NS_LOG_INFO ("Propagation loss model reducing txPower from " << txPower << " to " << rxPower << " to node " << tmp->GetNode ()->GetId ());
+        }
 
       // if fixed contention is enabled then we need to peg the neighbor count
       if ( (m_fixedContentionEnabled) && (distance < m_fixedContentionRange) )
@@ -179,7 +186,7 @@ SimpleWirelessChannel::Send (Ptr<Packet> p, uint16_t protocol,
                            << " txDelay: " << txTime << "  propDelay: " << propDelay);
 
       Simulator::ScheduleWithContext (destNodeId, NanoSeconds (txTime + propDelay),
-                                      &SimpleWirelessNetDevice::Receive, tmp, p->Copy (), protocol, to, from);
+                                      &SimpleWirelessNetDevice::Receive, tmp, p->Copy (), rxPower, protocol, to, from);
 
     }
 }
@@ -188,6 +195,12 @@ void
 SimpleWirelessChannel::Add (Ptr<SimpleWirelessNetDevice> device)
 {
   m_devices.push_back (device);
+}
+
+void
+SimpleWirelessChannel::AddPropagationLossModel (Ptr<PropagationLossModel> lossModel)
+{
+  m_lossModel = lossModel;
 }
 
 std::size_t

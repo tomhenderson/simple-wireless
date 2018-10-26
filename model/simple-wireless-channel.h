@@ -32,6 +32,7 @@
 namespace ns3 {
 
 class SimpleWirelessNetDevice;
+class PropagationLossModel;
 class Packet;
 
 enum ErrorModelType
@@ -105,10 +106,15 @@ public:
   static TypeId GetTypeId (void);
   SimpleWirelessChannel ();
 
-  void Send (Ptr<Packet> p, uint16_t protocol, Mac48Address to, Mac48Address from,
+  void Send (Ptr<Packet> p, double txPower, uint16_t protocol, Mac48Address to, Mac48Address from,
              Ptr<SimpleWirelessNetDevice> sender, Time txTime, uint32_t destId);
 
   void Add (Ptr<SimpleWirelessNetDevice> device);
+
+  /**
+   * \param lossModel the propagation loss model.
+   */
+  void AddPropagationLossModel (Ptr<PropagationLossModel> lossModel);
 
   // inherited from ns3::Channel
   virtual std::size_t GetNDevices (void) const;
@@ -127,6 +133,7 @@ private:
   std::vector<Ptr<SimpleWirelessNetDevice> > m_devices;
   double m_range;
   double m_errorRate;
+  Ptr<PropagationLossModel> m_lossModel;
   ErrorModelType m_ErrorModel;
   Ptr<UniformRandomVariable> m_random;
   std::map<double, double>  mPERmap;

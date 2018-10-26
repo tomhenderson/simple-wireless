@@ -168,6 +168,11 @@ SimpleWirelessNetDevice::GetTypeId (void)
                    DataRateValue (DataRate ("1000000b/s")),
                    MakeDataRateAccessor (&SimpleWirelessNetDevice::m_bps),
                    MakeDataRateChecker ())
+    .AddAttribute ("TxPower",
+                   "Transmit power (dBm)",
+                   DoubleValue (16),
+                   MakeDoubleAccessor (&SimpleWirelessNetDevice::m_txPower),
+                   MakeDoubleChecker<double> ())
     // Transmit queueing discipline for the device which includes its own set
     // of trace hooks.
     .AddAttribute ("TxQueue",
@@ -187,19 +192,19 @@ SimpleWirelessNetDevice::GetTypeId (void)
     .AddTraceSource ("PhyRxDrop",
                      "Trace source indicating a packet has been dropped by the device during reception",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxDropTrace),
-                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PhyRxTracedCallback")
     .AddTraceSource ("PhyRxBegin",
                      "Trace source indicating a packet "
                      "has begun being received from the channel medium "
                      "by the device",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxBeginTrace),
-                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PhyRxTracedCallback")
     .AddTraceSource ("PhyRxEnd",
                      "Trace source indicating a packet "
                      "has been completely received from the channel medium "
                      "by the device",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxEndTrace),
-                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PhyRxTracedCallback")
     // Trace sources designed to simulate a packet sniffer facility (tcpdump).
     .AddTraceSource ("PromiscSniffer",
                      "Trace source simulating a promiscuous packet sniffer attached to the device",
@@ -240,20 +245,20 @@ SimpleWirelessNetDevice::SimpleWirelessNetDevice ()
 }
 
 void
-SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, uint16_t protocol,
+SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, double rxPower, uint16_t protocol,
                                   Mac48Address to, Mac48Address from)
 {
-  NS_LOG_FUNCTION (packet << protocol << to << from);
+  NS_LOG_FUNCTION (packet << rxPower << protocol << to << from);
   NetDevice::PacketType packetType;
 
-  m_phyRxBeginTrace (packet, from, to, protocol);
+  m_phyRxBeginTrace (packet, rxPower, from);
   m_pktRcvTotal++;
 
   NS_LOG_INFO ("Node " << this->GetNode ()->GetId () << " receiving packet " << packet->GetUid () << "  from " << from << "  to " << to  );
 
   if (m_receiveErrorModel && m_receiveErrorModel->IsCorrupt (packet) )
     {
-      m_phyRxDropTrace (packet, from, to, protocol);
+      m_phyRxDropTrace (packet, rxPower, from);
       m_pktRcvDrop++;
       return;
     }
@@ -298,7 +303,7 @@ SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, uint16_t protocol,
       packetType = NetDevice::PACKET_OTHERHOST;
     }
 
-  m_phyRxEndTrace (packet, from, to, protocol);
+  m_phyRxEndTrace (packet, rxPower, from);
 
   if (packetType != NetDevice::PACKET_OTHERHOST)
     {
@@ -571,7 +576,7 @@ SimpleWirelessNetDevice::TransmitStart (Ptr<Packet> p)
 
   m_TxBeginTrace (p, from, to, protocol);
 
-  m_channel->Send (p, protocol, to, from, this, txTime, destId);
+  m_channel->Send (p, m_txPower, protocol, to, from, this, txTime, destId);
 }
 
 void
@@ -807,7 +812,7 @@ SimpleWirelessNetDevice::EnqueuePacket (Ptr<Packet> packet, Mac48Address from, M
               NS_LOG_DEBUG ("Node " << m_node->GetId () << " txTime was increased to " << txTime << " because we have " << m_nbrCount << " neighbors. packet size is " << packet->GetSize ());
             }
         }
-      m_channel->Send (packet, protocolNumber, to, from, this, txTime, destId);
+      m_channel->Send (packet, m_txPower, protocolNumber, to, from, this, txTime, destId);
       return true;
     }
 }

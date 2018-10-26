@@ -124,7 +124,7 @@ public:
   static TypeId GetTypeId (void);
   SimpleWirelessNetDevice ();
 
-  void Receive (Ptr<Packet> packet, uint16_t protocol, Mac48Address to, Mac48Address from);
+  void Receive (Ptr<Packet> packet, double rxPower, uint16_t protocol, Mac48Address to, Mac48Address from);
   void SetChannel (Ptr<SimpleWirelessChannel> channel);
 
   /**
@@ -223,6 +223,15 @@ public:
   typedef void (*PacketEventTracedCallback)(Ptr<const Packet> p, Mac48Address from, Mac48Address to, uint16_t proto);
 
   /**
+   * TracedCallback signature for PHY rx events
+   *
+   * \param [in] p Packet pointer
+   * \param [in] rxPower The rx power (dBm)
+   * \param [in] from The sender address
+   */
+  typedef void (*PhyRxTracedCallback)(Ptr<const Packet> p, double rxPower, Mac48Address from);
+
+  /**
    * TracedCallback signature for queue latency reports
    *
    * \param [in] p Packet pointer
@@ -241,6 +250,7 @@ private:
   uint32_t m_ifIndex;
   Mac48Address m_address;
   Ptr<ErrorModel> m_receiveErrorModel;
+  double m_txPower;
 
   Ptr<Packet> m_currentPkt;
 
@@ -301,7 +311,7 @@ private:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, Mac48Address, Mac48Address, uint16_t > m_phyRxBeginTrace;
+  TracedCallback<Ptr<const Packet>, double, Mac48Address > m_phyRxBeginTrace;
 
   /**
    * The trace source fired when a packet ends the reception process from
@@ -309,7 +319,7 @@ private:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, Mac48Address, Mac48Address, uint16_t > m_phyRxEndTrace;
+  TracedCallback<Ptr<const Packet>, double, Mac48Address > m_phyRxEndTrace;
 
   /**
    * The trace source fired when the phy layer drops a packet it has received
@@ -319,7 +329,7 @@ private:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, Mac48Address, Mac48Address, uint16_t > m_phyRxDropTrace;
+  TracedCallback<Ptr<const Packet>, double, Mac48Address > m_phyRxDropTrace;
 
   /**
    * A trace source that emulates a promiscuous mode protocol sniffer connected
