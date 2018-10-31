@@ -38,8 +38,10 @@
 namespace ns3 {
 
 class SimpleWirelessChannel;
+class SnrPerErrorModel;
 class Node;
 class ErrorModel;
+class UniformRandomVariable;
 
 #define NO_DIRECTIONAL_NBR  0xFFFFFFFF
 
@@ -139,6 +141,23 @@ public:
   void SetReceiveErrorModel (Ptr<ErrorModel> em);
 
   /**
+   * Attach a receive SnrPerErrorModel to the SimpleWirelessNetDevice.
+   *
+   * The SimpleWirelessNetDevice may optionally include an SnrPerErrorModel in
+   * the packet receive chain.
+   *
+   * \param em Ptr to the SnrPerErrorModel.
+   */
+  void SetSnrPerErrorModel (Ptr<SnrPerErrorModel> em);
+
+  /**
+   * Get pointer to the SnrPerErrorModel
+   *
+   * \return Ptr to the SnrPerErrorModel.
+   */
+  Ptr<SnrPerErrorModel> GetSnrPerErrorModel (void) const;
+
+  /**
    * Set the Data Rate used for transmission of packets.  The data rate is
    * set in the Attach () method from the corresponding field in the channel
    * to which the device is attached.  It can be overridden using this method.
@@ -182,6 +201,16 @@ public:
 
 
   void EnablePcapAll (std::string filename);
+
+  /**
+   * Assign a fixed random variable stream number to the random variables
+   * used by this model. Return the number of streams (possibly zero) that
+   * have been assigned.
+   *
+   * \param stream first stream index to use
+   * \return the number of stream indices assigned by this model
+   */
+  virtual int64_t AssignStreams (int64_t stream);
 
   // inherited from NetDevice base class.
   virtual void SetIfIndex (const uint32_t index);
@@ -375,6 +404,13 @@ private:
    * \see class CallBackTraceSource
    */
   TracedCallback<Ptr<const Packet> > m_macRxTrace;
+  /**
+   * The trace source fired for packets successfully received by the device
+   * at the PHY but dropped at the MAC.
+   *
+   * \see class CallBackTraceSource
+   */
+  TracedCallback<Ptr<const Packet> > m_macRxDropTrace;
 
 
   uint32_t  m_pktRcvTotal;
@@ -385,6 +421,10 @@ private:
   std::map<uint32_t, Mac48Address> mDirectionalNbrs;
 
   int  m_nbrCount;
+
+  Ptr<UniformRandomVariable> m_uniformRv; //!< Provides uniform random variates
+
+  Ptr<SnrPerErrorModel> m_snrPerErrorModel; 
 };
 
 } // namespace ns3

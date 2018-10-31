@@ -7,6 +7,7 @@ def build(bld):
         'model/simple-wireless-channel.cc',
         'model/drop-head-queue.cc',
         'model/priority-queue.cc',
+        'model/snr-per-error-model.cc',
         ]
     headers = bld(features='ns3header')
     headers.module = 'simple-wireless'
@@ -15,6 +16,7 @@ def build(bld):
         'model/simple-wireless-channel.h',
         'model/drop-head-queue.h',
         'model/priority-queue.h',
+        'model/snr-per-error-model.h',
         ]
     obj.env.append_value("LIB", ["pcap"])
     

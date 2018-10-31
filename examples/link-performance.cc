@@ -43,6 +43,7 @@
 #include "ns3/propagation-module.h"
 #include "ns3/simple-wireless-channel.h"
 #include "ns3/simple-wireless-net-device.h"
+#include "ns3/snr-per-error-model.h"
 
 using namespace ns3;
 
@@ -84,6 +85,7 @@ main (int argc, char *argv[])
 
   auto lossModel = CreateObject<FriisPropagationLossModel> ();
   lossModel->SetFrequency (5e9);  // 5 GHz
+  lossModel->SetAlpha (5e9);  // 5 GHz
 
   NetDeviceContainer devices;
   Ptr<SimpleWirelessChannel> channel = CreateObject<SimpleWirelessChannel> ();
@@ -101,6 +103,8 @@ main (int argc, char *argv[])
   receiverDevice->SetAddress (Mac48Address::Allocate ());
   receiverDevice->SetDataRate (dataRate);
   receiverDevice->TraceConnectWithoutContext ("PhyRxEnd", MakeCallback (&ReceiveTrace));
+  Ptr<BpskSnrPerErrorModel> errorModel = CreateObject<BpskSnrPerErrorModel> ();
+  receiverDevice->SetSnrPerErrorModel (errorModel);
   receiverNode->AddDevice (receiverDevice);
   devices.Add (receiverDevice);
 
