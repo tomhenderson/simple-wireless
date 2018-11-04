@@ -85,7 +85,6 @@ main (int argc, char *argv[])
 
   auto lossModel = CreateObject<FriisPropagationLossModel> ();
   lossModel->SetFrequency (5e9);  // 5 GHz
-  lossModel->SetAlpha (5e9);  // 5 GHz
 
   NetDeviceContainer devices;
   Ptr<SimpleWirelessChannel> channel = CreateObject<SimpleWirelessChannel> ();
