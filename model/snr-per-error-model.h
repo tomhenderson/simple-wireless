@@ -20,6 +20,7 @@
 #ifndef SNR_PER_ERROR_MODEL_H
 #define SNR_PER_ERROR_MODEL_H
 
+#include <map>
 #include "ns3/object.h"
 
 namespace ns3 {
@@ -42,14 +43,15 @@ public:
 
   double BerToPer (double ber, uint32_t bytes) const;
 
-  double Receive (double rxPowerDbm, double noisePowerDbm, uint32_t bytes);
+  double Receive (double snrDb, uint32_t bytes);
 private:
   /**
-   * Corrupt a packet according to the specified model.
-   * \param p the packet to corrupt
-   * \returns true if the packet is corrupted
+   * Return a PER corresponding to an SNR in dB and packet size in bytes
+   * \param snr the input SNR in dB
+   * \param bytes the packet size in bytes
+   * \returns the PER
    */
-  virtual double DoReceive (double rxPowerDbm, double noisePowerDbm, uint32_t bytes) = 0;
+  virtual double DoReceive (double snr, uint32_t bytes) = 0;
 };
 
 class BpskSnrPerErrorModel : public SnrPerErrorModel
@@ -65,7 +67,27 @@ public:
   virtual ~BpskSnrPerErrorModel ();
 
 private:
-  double DoReceive (double rxPowerDbm, double noisePowerDbm, uint32_t bytes);
+  double DoReceive (double snr, uint32_t bytes);
+};
+
+class TableSnrPerErrorModel : public SnrPerErrorModel
+{
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  TableSnrPerErrorModel ();
+  virtual ~TableSnrPerErrorModel ();
+
+  void AddValue (double snr, double per);
+
+private:
+  double DoReceive (double snr, uint32_t bytes);
+  std::map<double, double> m_perMap;
+  std::pair<double, double> m_cachedValue;
 };
 } // namespace ns3
 #endif

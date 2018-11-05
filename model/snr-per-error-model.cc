@@ -17,6 +17,7 @@
  */
 
 #include <cmath>
+#include <map>
 
 #include "snr-per-error-model.h"
 
@@ -49,10 +50,10 @@ SnrPerErrorModel::~SnrPerErrorModel ()
 }
 
 double
-SnrPerErrorModel::Receive (double rxPowerDbm, double noisePowerDbm, uint32_t bytes)
+SnrPerErrorModel::Receive (double snr, uint32_t bytes)
 { 
-  NS_LOG_FUNCTION (this << rxPowerDbm << noisePowerDbm << bytes);
-  return DoReceive (rxPowerDbm, noisePowerDbm, bytes);
+  NS_LOG_FUNCTION (this << snr << bytes);
+  return DoReceive (snr, bytes);
 }
 
 double
@@ -95,12 +96,85 @@ BpskSnrPerErrorModel::~BpskSnrPerErrorModel ()
 }
 
 double
-BpskSnrPerErrorModel::DoReceive (double rxPowerDbm, double noisePowerDbm, uint32_t bytes)
+BpskSnrPerErrorModel::DoReceive (double snr, uint32_t bytes)
 { 
-  NS_LOG_FUNCTION (this << rxPowerDbm << noisePowerDbm << bytes);
-  double snr = rxPowerDbm - noisePowerDbm;
+  NS_LOG_FUNCTION (this << snr << bytes);
   double ber = QFunction (sqrt(2*snr));
   return BerToPer (ber, bytes);
+}
+
+NS_OBJECT_ENSURE_REGISTERED (TableSnrPerErrorModel);
+
+TypeId TableSnrPerErrorModel::GetTypeId (void)
+{ 
+  static TypeId tid = TypeId ("ns3::TableSnrPerErrorModel")
+    .SetParent<SnrPerErrorModel> ()
+    .SetGroupName("SimpleWireless")
+    .AddConstructor<TableSnrPerErrorModel> ()
+  ;
+  return tid;
+}
+
+TableSnrPerErrorModel::TableSnrPerErrorModel ()
+{
+  NS_LOG_FUNCTION (this);
+  m_cachedValue = std::pair<double, double> (std::numeric_limits<double>::max (), 0);
+}
+
+TableSnrPerErrorModel::~TableSnrPerErrorModel () 
+{
+  NS_LOG_FUNCTION (this);
+}
+
+double
+TableSnrPerErrorModel::DoReceive (double snr, uint32_t bytes)
+{ 
+  NS_LOG_FUNCTION (this << snr << bytes);
+  // Check cached value first
+  if (m_cachedValue.first == snr)
+    {
+      NS_LOG_INFO ("Returning cached value for SNR " << snr << " of PER " << m_cachedValue.second);
+      return m_cachedValue.second;
+    }
+  auto it = m_perMap.find (snr);
+  if (it != m_perMap.end ())
+    {
+      NS_LOG_INFO ("Found exact match for SNR " << snr << " of PER " << it->second);
+      m_cachedValue = std::pair<double, double> (snr, it->second);
+      return it->second;
+    }
+  else
+    {
+       auto lower = m_perMap.lower_bound (snr);
+       if (lower == m_perMap.begin ())
+         {
+           NS_LOG_INFO ("SNR " << snr << " is below lower bound of " << lower->first << "; returning 1");
+           m_cachedValue = std::pair<double, double> (snr, 1);
+           return 1;
+         } 
+       auto upper = m_perMap.upper_bound (snr);
+       if (upper == m_perMap.end ())
+         {
+           NS_LOG_INFO ("SNR " << snr << " is above upper bound " << upper->first << "; returning 0");
+           m_cachedValue = std::pair<double, double> (snr, 0);
+           return 0;
+         } 
+       lower = upper; 
+       lower--;
+       double per = lower->second + (snr - lower->first)/ (upper->first - lower->first) * (upper->second - lower->second);
+       NS_LOG_INFO ("SNR " << snr << " is interpolated between " << upper->first << " and " << lower->first << "; returning " << per);
+       m_cachedValue = std::pair<double, double> (snr, per);
+       return per;
+    }
+}
+
+void
+TableSnrPerErrorModel::AddValue (double snr, double per)
+{
+  NS_LOG_FUNCTION (this << snr << per);
+  NS_ABORT_MSG_IF (per < 0 || per > 1, "Illegal PER value " << per);
+  NS_ABORT_MSG_IF (snr < -100 || snr > 100, "Illegal SNR value " << snr);
+  m_perMap.insert (std::pair<double, double> (snr, per));  
 }
 
 } // namespace ns3

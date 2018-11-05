@@ -19,6 +19,10 @@ def build(bld):
         'model/snr-per-error-model.h',
         ]
     obj.env.append_value("LIB", ["pcap"])
+    module_test = bld.create_ns3_module_test_library('simple-wireless')
+    module_test.source = [
+        'test/simple-wireless-test-suite.cc',
+        ]
     
     if (bld.env['ENABLE_EXAMPLES']):
         bld.recurse('examples')

@@ -315,20 +315,22 @@ SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, double rxPower, uint16_t p
 
   m_phyRxEndTrace (packet, rxPower, from);
 
+  double noisePower = -100; // placeholder -- to be set by attribute
+
   if (m_snrPerErrorModel)
     {
-      double per = m_snrPerErrorModel->Receive (rxPower, -100, packet->GetSize ());
-      NS_LOG_DEBUG ("PER " << per << " rxPower " << rxPower << " noisePower " << -100 << " size " << packet->GetSize ());
+      double per = m_snrPerErrorModel->Receive (rxPower - noisePower, packet->GetSize ());
+      NS_LOG_DEBUG ("PER " << per << " SNR " << rxPower - noisePower << " size " << packet->GetSize ());
       if (per > m_uniformRv->GetValue ())
         {
-          NS_LOG_DEBUG ("PER " << per << " rxPower " << rxPower << " noisePower " << -100 << " size " << packet->GetSize ());
+          NS_LOG_DEBUG ("Dropping packet based on random variable");
           m_phyRxDropTrace (packet, rxPower, from);
           m_pktRcvDrop++;
           return;
         }
     }
 
-  // Notionally we move to the MAC layer for the remainder of this method
+  // Notionally, the below is MAC level processing for the rest of this method
 
   if (m_receiveErrorModel && m_receiveErrorModel->IsCorrupt (packet) )
     {
