@@ -23,8 +23,10 @@
 #include "ns3/pointer.h"
 #include "ns3/error-model.h"
 #include "ns3/trace-source-accessor.h"
+#include "ns3/random-variable-stream.h"
 #include "simple-wireless-net-device.h"
 #include "simple-wireless-channel.h"
+#include "snr-per-error-model.h"
 
 #include <netinet/in.h>  // needed for noth for protocol # in sniffer
 
@@ -168,6 +170,11 @@ SimpleWirelessNetDevice::GetTypeId (void)
                    DataRateValue (DataRate ("1000000b/s")),
                    MakeDataRateAccessor (&SimpleWirelessNetDevice::m_bps),
                    MakeDataRateChecker ())
+    .AddAttribute ("TxPower",
+                   "Transmit power (dBm)",
+                   DoubleValue (16),
+                   MakeDoubleAccessor (&SimpleWirelessNetDevice::m_txPower),
+                   MakeDoubleChecker<double> ())
     // Transmit queueing discipline for the device which includes its own set
     // of trace hooks.
     .AddAttribute ("TxQueue",
@@ -187,19 +194,19 @@ SimpleWirelessNetDevice::GetTypeId (void)
     .AddTraceSource ("PhyRxDrop",
                      "Trace source indicating a packet has been dropped by the device during reception",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxDropTrace),
-                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PhyRxTracedCallback")
     .AddTraceSource ("PhyRxBegin",
                      "Trace source indicating a packet "
                      "has begun being received from the channel medium "
                      "by the device",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxBeginTrace),
-                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PhyRxTracedCallback")
     .AddTraceSource ("PhyRxEnd",
                      "Trace source indicating a packet "
                      "has been completely received from the channel medium "
                      "by the device",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_phyRxEndTrace),
-                     "ns3::SimpleWirelessNetDevice::PacketEventTracedCallback")
+                     "ns3::SimpleWirelessNetDevice::PhyRxTracedCallback")
     // Trace sources designed to simulate a packet sniffer facility (tcpdump).
     .AddTraceSource ("PromiscSniffer",
                      "Trace source simulating a promiscuous packet sniffer attached to the device",
@@ -219,6 +226,11 @@ SimpleWirelessNetDevice::GetTypeId (void)
                      "and is being forwarded up the local protocol stack.  This is a non-promiscuous trace,",
                      MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_macRxTrace),
                      "ns3::Packet::TracedCallback")
+    .AddTraceSource ("MacDrop",
+                     "A packet has been received by this device, has been passed up from the physical layer "
+                     "and is being dropped at the MAC layer.",
+                     MakeTraceSourceAccessor (&SimpleWirelessNetDevice::m_macRxDropTrace),
+                     "ns3::Packet::TracedCallback")
   ;
   return tid;
 }
@@ -234,26 +246,29 @@ SimpleWirelessNetDevice::SimpleWirelessNetDevice ()
   m_pktRcvDrop (0),
   m_pcapEnabled (false),
   m_fixedNbrListEnabled (false),
-  m_nbrCount (0)
+  m_nbrCount (0),
+  m_snrPerErrorModel (0)
 
 {
+  NS_LOG_FUNCTION (this);
+  m_uniformRv = CreateObject<UniformRandomVariable> ();
 }
 
 void
-SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, uint16_t protocol,
+SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, double rxPower, uint16_t protocol,
                                   Mac48Address to, Mac48Address from)
 {
-  NS_LOG_FUNCTION (packet << protocol << to << from);
+  NS_LOG_FUNCTION (packet << rxPower << protocol << to << from);
   NetDevice::PacketType packetType;
 
-  m_phyRxBeginTrace (packet, from, to, protocol);
+  m_phyRxBeginTrace (packet, rxPower, from);
   m_pktRcvTotal++;
 
   NS_LOG_INFO ("Node " << this->GetNode ()->GetId () << " receiving packet " << packet->GetUid () << "  from " << from << "  to " << to  );
 
   if (m_receiveErrorModel && m_receiveErrorModel->IsCorrupt (packet) )
     {
-      m_phyRxDropTrace (packet, from, to, protocol);
+      m_phyRxDropTrace (packet, rxPower, from);
       m_pktRcvDrop++;
       return;
     }
@@ -298,7 +313,30 @@ SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, uint16_t protocol,
       packetType = NetDevice::PACKET_OTHERHOST;
     }
 
-  m_phyRxEndTrace (packet, from, to, protocol);
+  m_phyRxEndTrace (packet, rxPower, from);
+
+  if (m_snrPerErrorModel)
+    {
+      double per = m_snrPerErrorModel->Receive (rxPower, -100, packet->GetSize ());
+      NS_LOG_DEBUG ("PER " << per << " rxPower " << rxPower << " noisePower " << -100 << " size " << packet->GetSize ());
+      if (per > m_uniformRv->GetValue ())
+        {
+          NS_LOG_DEBUG ("PER " << per << " rxPower " << rxPower << " noisePower " << -100 << " size " << packet->GetSize ());
+          m_phyRxDropTrace (packet, rxPower, from);
+          m_pktRcvDrop++;
+          return;
+        }
+    }
+
+  // Notionally we move to the MAC layer for the remainder of this method
+
+  if (m_receiveErrorModel && m_receiveErrorModel->IsCorrupt (packet) )
+    {
+      m_macRxDropTrace (packet);
+      m_pktRcvDrop++;
+      return;
+    }
+
 
   if (packetType != NetDevice::PACKET_OTHERHOST)
     {
@@ -311,6 +349,7 @@ SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, uint16_t protocol,
     {
       m_promiscCallback (this, packet, protocol, from, to, packetType);
     }
+
   NS_LOG_DEBUG ("Total Rcvd: " << m_pktRcvTotal << " Total Dropped: " << m_pktRcvDrop);
 }
 
@@ -325,6 +364,18 @@ void
 SimpleWirelessNetDevice::SetReceiveErrorModel (Ptr<ErrorModel> em)
 {
   m_receiveErrorModel = em;
+}
+
+void
+SimpleWirelessNetDevice::SetSnrPerErrorModel (Ptr<SnrPerErrorModel> em)
+{
+  m_snrPerErrorModel = em;
+}
+
+Ptr<SnrPerErrorModel>
+SimpleWirelessNetDevice::GetSnrPerErrorModel (void) const
+{
+  return m_snrPerErrorModel;
 }
 
 void
@@ -571,7 +622,7 @@ SimpleWirelessNetDevice::TransmitStart (Ptr<Packet> p)
 
   m_TxBeginTrace (p, from, to, protocol);
 
-  m_channel->Send (p, protocol, to, from, this, txTime, destId);
+  m_channel->Send (p, m_txPower, protocol, to, from, this, txTime, destId);
 }
 
 void
@@ -807,7 +858,7 @@ SimpleWirelessNetDevice::EnqueuePacket (Ptr<Packet> packet, Mac48Address from, M
               NS_LOG_DEBUG ("Node " << m_node->GetId () << " txTime was increased to " << txTime << " because we have " << m_nbrCount << " neighbors. packet size is " << packet->GetSize ());
             }
         }
-      m_channel->Send (packet, protocolNumber, to, from, this, txTime, destId);
+      m_channel->Send (packet, m_txPower, protocolNumber, to, from, this, txTime, destId);
       return true;
     }
 }
@@ -886,6 +937,14 @@ void SimpleWirelessNetDevice::EnablePcapAll (std::string filename)
   Ptr<PcapFileWrapper> file = pcapHelper.CreateFile (filename, std::ios::out, PcapHelper::DLT_EN10MB);
   pcapHelper.HookDefaultSink<SimpleWirelessNetDevice> (this, "PromiscSniffer", file);
   m_pcapEnabled = true;
+}
+
+int64_t
+SimpleWirelessNetDevice::AssignStreams (int64_t stream)
+{
+  NS_LOG_FUNCTION (this << stream);
+  m_uniformRv->SetStream (stream);
+  return 1;
 }
 
 } // namespace ns3

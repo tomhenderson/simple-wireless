@@ -38,8 +38,10 @@
 namespace ns3 {
 
 class SimpleWirelessChannel;
+class SnrPerErrorModel;
 class Node;
 class ErrorModel;
+class UniformRandomVariable;
 
 #define NO_DIRECTIONAL_NBR  0xFFFFFFFF
 
@@ -124,7 +126,7 @@ public:
   static TypeId GetTypeId (void);
   SimpleWirelessNetDevice ();
 
-  void Receive (Ptr<Packet> packet, uint16_t protocol, Mac48Address to, Mac48Address from);
+  void Receive (Ptr<Packet> packet, double rxPower, uint16_t protocol, Mac48Address to, Mac48Address from);
   void SetChannel (Ptr<SimpleWirelessChannel> channel);
 
   /**
@@ -137,6 +139,23 @@ public:
    * \param em Ptr to the ErrorModel.
    */
   void SetReceiveErrorModel (Ptr<ErrorModel> em);
+
+  /**
+   * Attach a receive SnrPerErrorModel to the SimpleWirelessNetDevice.
+   *
+   * The SimpleWirelessNetDevice may optionally include an SnrPerErrorModel in
+   * the packet receive chain.
+   *
+   * \param em Ptr to the SnrPerErrorModel.
+   */
+  void SetSnrPerErrorModel (Ptr<SnrPerErrorModel> em);
+
+  /**
+   * Get pointer to the SnrPerErrorModel
+   *
+   * \return Ptr to the SnrPerErrorModel.
+   */
+  Ptr<SnrPerErrorModel> GetSnrPerErrorModel (void) const;
 
   /**
    * Set the Data Rate used for transmission of packets.  The data rate is
@@ -183,6 +202,16 @@ public:
 
   void EnablePcapAll (std::string filename);
 
+  /**
+   * Assign a fixed random variable stream number to the random variables
+   * used by this model. Return the number of streams (possibly zero) that
+   * have been assigned.
+   *
+   * \param stream first stream index to use
+   * \return the number of stream indices assigned by this model
+   */
+  virtual int64_t AssignStreams (int64_t stream);
+
   // inherited from NetDevice base class.
   virtual void SetIfIndex (const uint32_t index);
   virtual uint32_t GetIfIndex (void) const;
@@ -223,6 +252,15 @@ public:
   typedef void (*PacketEventTracedCallback)(Ptr<const Packet> p, Mac48Address from, Mac48Address to, uint16_t proto);
 
   /**
+   * TracedCallback signature for PHY rx events
+   *
+   * \param [in] p Packet pointer
+   * \param [in] rxPower The rx power (dBm)
+   * \param [in] from The sender address
+   */
+  typedef void (*PhyRxTracedCallback)(Ptr<const Packet> p, double rxPower, Mac48Address from);
+
+  /**
    * TracedCallback signature for queue latency reports
    *
    * \param [in] p Packet pointer
@@ -241,6 +279,7 @@ private:
   uint32_t m_ifIndex;
   Mac48Address m_address;
   Ptr<ErrorModel> m_receiveErrorModel;
+  double m_txPower;
 
   Ptr<Packet> m_currentPkt;
 
@@ -301,7 +340,7 @@ private:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, Mac48Address, Mac48Address, uint16_t > m_phyRxBeginTrace;
+  TracedCallback<Ptr<const Packet>, double, Mac48Address > m_phyRxBeginTrace;
 
   /**
    * The trace source fired when a packet ends the reception process from
@@ -309,7 +348,7 @@ private:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, Mac48Address, Mac48Address, uint16_t > m_phyRxEndTrace;
+  TracedCallback<Ptr<const Packet>, double, Mac48Address > m_phyRxEndTrace;
 
   /**
    * The trace source fired when the phy layer drops a packet it has received
@@ -319,7 +358,7 @@ private:
    *
    * \see class CallBackTraceSource
    */
-  TracedCallback<Ptr<const Packet>, Mac48Address, Mac48Address, uint16_t > m_phyRxDropTrace;
+  TracedCallback<Ptr<const Packet>, double, Mac48Address > m_phyRxDropTrace;
 
   /**
    * A trace source that emulates a promiscuous mode protocol sniffer connected
@@ -365,6 +404,13 @@ private:
    * \see class CallBackTraceSource
    */
   TracedCallback<Ptr<const Packet> > m_macRxTrace;
+  /**
+   * The trace source fired for packets successfully received by the device
+   * at the PHY but dropped at the MAC.
+   *
+   * \see class CallBackTraceSource
+   */
+  TracedCallback<Ptr<const Packet> > m_macRxDropTrace;
 
 
   uint32_t  m_pktRcvTotal;
@@ -375,6 +421,10 @@ private:
   std::map<uint32_t, Mac48Address> mDirectionalNbrs;
 
   int  m_nbrCount;
+
+  Ptr<UniformRandomVariable> m_uniformRv; //!< Provides uniform random variates
+
+  Ptr<SnrPerErrorModel> m_snrPerErrorModel; 
 };
 
 } // namespace ns3
