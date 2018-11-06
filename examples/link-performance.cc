@@ -33,17 +33,29 @@
 //    (to be completed)
 //
 
+#include <fstream>
+#include <iostream>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/applications-module.h"
+#include "ns3/propagation-module.h"
 #include "ns3/simple-wireless-channel.h"
 #include "ns3/simple-wireless-net-device.h"
+#include "ns3/snr-per-error-model.h"
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("LinkPerformanceExample");
+
+std::ofstream g_fileRssi;
+
+void
+ReceiveTrace (Ptr<const Packet> p, double rxPower, Mac48Address from)
+{
+  g_fileRssi << Simulator::Now ().GetSeconds () << " " << rxPower << std::endl;
+}
 
 int
 main (int argc, char *argv[])
@@ -51,9 +63,14 @@ main (int argc, char *argv[])
   uint16_t serverPort = 9;
   DataRate dataRate = DataRate ("1Mbps");
   double distance = 25.0; // meters
+  double maxPackets = 1000;
 
   CommandLine cmd;
+  cmd.AddValue("distance","the distance between the two nodes",distance);
+  cmd.AddValue("maxPackets","the number of packets to send",maxPackets);
   cmd.Parse (argc, argv);
+
+  g_fileRssi.open ("link-performance-rssi.dat", std::ofstream::out);
   
   Ptr<Node> senderNode = CreateObject<Node> ();
   Ptr<Node> receiverNode = CreateObject<Node> ();
@@ -69,8 +86,12 @@ main (int argc, char *argv[])
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
   mobility.Install (nodes);
 
+  auto lossModel = CreateObject<FriisPropagationLossModel> ();
+  lossModel->SetFrequency (5e9);  // 5 GHz
+
   NetDeviceContainer devices;
   Ptr<SimpleWirelessChannel> channel = CreateObject<SimpleWirelessChannel> ();
+  channel->AddPropagationLossModel (lossModel);
   Ptr<SimpleWirelessNetDevice> senderDevice = CreateObject<SimpleWirelessNetDevice> ();
   senderDevice->SetChannel (channel);
   senderDevice->SetNode (senderNode);
@@ -83,6 +104,9 @@ main (int argc, char *argv[])
   receiverDevice->SetNode (receiverNode);
   receiverDevice->SetAddress (Mac48Address::Allocate ());
   receiverDevice->SetDataRate (dataRate);
+  receiverDevice->TraceConnectWithoutContext ("PhyRxEnd", MakeCallback (&ReceiveTrace));
+  Ptr<BpskSnrPerErrorModel> errorModel = CreateObject<BpskSnrPerErrorModel> ();
+  receiverDevice->SetSnrPerErrorModel (errorModel);
   receiverNode->AddDevice (receiverDevice);
   devices.Add (receiverDevice);
 
@@ -99,7 +123,7 @@ main (int argc, char *argv[])
   serverApps.Stop (Seconds (10.0));
 
   UdpEchoClientHelper echoClient (interfaces.GetAddress (1), serverPort);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (1000));
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (maxPackets));
   echoClient.SetAttribute ("Interval", TimeValue (MilliSeconds (100)));
   echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
 
@@ -109,5 +133,6 @@ main (int argc, char *argv[])
 
   Simulator::Run ();
   Simulator::Destroy ();
+  g_fileRssi.close ();
   return 0;
 }
