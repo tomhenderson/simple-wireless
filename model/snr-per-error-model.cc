@@ -61,7 +61,7 @@ SnrPerErrorModel::QFunction (double x) const
 {
   NS_LOG_FUNCTION (this << x);
   // Chernoff bound for now
-  double approx = ((1 - exp (-1.4 * x))*exp(-0.5 * x * x))/ (5.04 * x);
+  double approx = ((1 - exp (-1.4 * x))*exp(-0.5 * x * x))/ (2.845 * x);
   return approx;
 }
 

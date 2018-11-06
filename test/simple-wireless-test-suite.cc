@@ -22,6 +22,43 @@
 
 using namespace ns3;
 
+class SimpleWirelessSnrPerMethods : public TestCase
+{
+public:
+  SimpleWirelessSnrPerMethods ();
+  virtual ~SimpleWirelessSnrPerMethods ();
+
+private:
+  virtual void DoRun (void);
+};
+
+SimpleWirelessSnrPerMethods::SimpleWirelessSnrPerMethods ()
+  : TestCase ("Check the SnrPerErrorModel basic methods (Q function, BER to PER)")
+{
+}
+
+SimpleWirelessSnrPerMethods::~SimpleWirelessSnrPerMethods ()
+{
+}
+
+void
+SimpleWirelessSnrPerMethods::DoRun (void)
+{
+  Ptr<TableSnrPerErrorModel> model = CreateObject<TableSnrPerErrorModel> ();
+  double valueToCheck = model->QFunction (0);
+  NS_TEST_ASSERT_MSG_EQ_TOL (valueToCheck, 0.5, 1e-4, "Numbers are not equal within tolerance");
+  valueToCheck = model->QFunction (0.5);
+  NS_TEST_ASSERT_MSG_EQ_TOL (valueToCheck, 0.30854, 0.004, "Numbers are not equal within tolerance");
+  valueToCheck = model->QFunction (1.0);
+  NS_TEST_ASSERT_MSG_EQ_TOL (valueToCheck, 0.15866, 0.002, "Numbers are not equal within tolerance");
+  valueToCheck = model->QFunction (1.5);
+  NS_TEST_ASSERT_MSG_EQ_TOL (valueToCheck, 0.066807, 0.0001, "Numbers are not equal within tolerance");
+  // Can add some more values later
+
+  valueToCheck = model->BerToPer (0.0001, 1000);
+  NS_TEST_ASSERT_MSG_EQ_TOL (valueToCheck, 0.550689, 1e-6, "Numbers are not equal within tolerance");
+}
+
 class SimpleWirelessTableModel : public TestCase
 {
 public:
@@ -110,6 +147,7 @@ public:
 SimpleWirelessTestSuite::SimpleWirelessTestSuite ()
   : TestSuite ("simple-wireless", UNIT)
 {
+  AddTestCase (new SimpleWirelessSnrPerMethods, TestCase::QUICK);
   AddTestCase (new SimpleWirelessTableModel, TestCase::QUICK);
 }
 
