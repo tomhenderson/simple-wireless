@@ -170,6 +170,11 @@ SimpleWirelessNetDevice::GetTypeId (void)
                    DataRateValue (DataRate ("1000000b/s")),
                    MakeDataRateAccessor (&SimpleWirelessNetDevice::m_bps),
                    MakeDataRateChecker ())
+     .AddAttribute ("NoisePower",
+                   "Noise Power (dBm)",
+                   DoubleValue (-100),
+                   MakeDoubleAccessor (&SimpleWirelessNetDevice::m_noisePower),
+                   MakeDoubleChecker<double> ())
     .AddAttribute ("TxPower",
                    "Transmit power (dBm)",
                    DoubleValue (16),
@@ -315,12 +320,10 @@ SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, double rxPower, uint16_t p
 
   m_phyRxEndTrace (packet, rxPower, from);
 
-  double noisePower = -100; // placeholder -- to be set by attribute
-
   if (m_snrPerErrorModel)
     {
-      double per = m_snrPerErrorModel->Receive (rxPower - noisePower, packet->GetSize ());
-      NS_LOG_DEBUG ("PER " << per << " SNR " << rxPower - noisePower << " size " << packet->GetSize ());
+      double per = m_snrPerErrorModel->Receive (rxPower - m_noisePower, packet->GetSize ());
+      NS_LOG_DEBUG ("PER " << per << " SNR " << rxPower - m_noisePower << " size " << packet->GetSize ());
       if (per > m_uniformRv->GetValue ())
         {
           NS_LOG_DEBUG ("Dropping packet based on random variable");
@@ -916,6 +919,13 @@ SimpleWirelessNetDevice::SetDataRate (DataRate bps)
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_bps = bps;
+}
+
+void
+SimpleWirelessNetDevice::SetNoisePower (double noisePower)
+{
+  NS_LOG_FUNCTION (this << noisePower);
+  m_noisePower = noisePower;
 }
 
 void

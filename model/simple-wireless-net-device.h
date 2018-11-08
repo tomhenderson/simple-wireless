@@ -168,6 +168,12 @@ public:
   void SetDataRate (DataRate bps);
 
   /**
+   * set noise power
+   */
+
+  void SetNoisePower (double noisePower);
+ 
+  /**
  * Attach a queue to the PointToPointNetDevice.
  *
  * The PointToPointNetDevice "owns" a queue that implements a queueing
@@ -177,6 +183,7 @@ public:
  * @see DropTailQueue
  * @param queue Ptr to the new queue.
  */
+ 
   void SetQueue (Ptr<Queue<Packet> > queue);
 
   /**
@@ -421,6 +428,7 @@ private:
   std::map<uint32_t, Mac48Address> mDirectionalNbrs;
 
   int  m_nbrCount;
+  double m_noisePower;
 
   Ptr<UniformRandomVariable> m_uniformRv; //!< Provides uniform random variates
 

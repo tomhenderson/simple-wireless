@@ -63,8 +63,13 @@ main (int argc, char *argv[])
   uint16_t serverPort = 9;
   DataRate dataRate = DataRate ("1Mbps");
   double distance = 25.0; // meters
+  double maxPackets = 1000;
+  double noisePower = -100; // dbm
 
   CommandLine cmd;
+  cmd.AddValue("distance","the distance between the two nodes",distance);
+  cmd.AddValue("maxPackets","the number of packets to send",maxPackets);
+  cmd.AddValue("noisePower","noise power in dBm",noisePower);
   cmd.Parse (argc, argv);
 
   g_fileRssi.open ("link-performance-rssi.dat", std::ofstream::out);
@@ -94,6 +99,7 @@ main (int argc, char *argv[])
   senderDevice->SetNode (senderNode);
   senderDevice->SetAddress (Mac48Address::Allocate ());
   senderDevice->SetDataRate (dataRate);
+  senderDevice->SetNoisePower (noisePower);
   senderNode->AddDevice (senderDevice);
   devices.Add (senderDevice);
   Ptr<SimpleWirelessNetDevice> receiverDevice = CreateObject<SimpleWirelessNetDevice> ();
@@ -120,7 +126,7 @@ main (int argc, char *argv[])
   serverApps.Stop (Seconds (10.0));
 
   UdpEchoClientHelper echoClient (interfaces.GetAddress (1), serverPort);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (1000));
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (maxPackets));
   echoClient.SetAttribute ("Interval", TimeValue (MilliSeconds (100)));
   echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
 
