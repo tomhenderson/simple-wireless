@@ -177,6 +177,11 @@ public:
  * @see DropTailQueue
  * @param queue Ptr to the new queue.
  */
+ void SetNoisePower (double noisePower);
+
+  /**
+ * set noise power
+ */
   void SetQueue (Ptr<Queue<Packet> > queue);
 
   /**
@@ -421,6 +426,7 @@ private:
   std::map<uint32_t, Mac48Address> mDirectionalNbrs;
 
   int  m_nbrCount;
+  double m_noisePower;
 
   Ptr<UniformRandomVariable> m_uniformRv; //!< Provides uniform random variates
 
