@@ -168,6 +168,12 @@ public:
   void SetDataRate (DataRate bps);
 
   /**
+   * set noise power
+   */
+
+  void SetNoisePower (double noisePower);
+ 
+  /**
  * Attach a queue to the PointToPointNetDevice.
  *
  * The PointToPointNetDevice "owns" a queue that implements a queueing
@@ -177,11 +183,7 @@ public:
  * @see DropTailQueue
  * @param queue Ptr to the new queue.
  */
- void SetNoisePower (double noisePower);
-
-  /**
- * set noise power
- */
+ 
   void SetQueue (Ptr<Queue<Packet> > queue);
 
   /**
