@@ -320,8 +320,6 @@ SimpleWirelessNetDevice::Receive (Ptr<Packet> packet, double rxPower, uint16_t p
 
   m_phyRxEndTrace (packet, rxPower, from);
 
-  //double noisePower = -100; // placeholder -- to be set by attribute
-
   if (m_snrPerErrorModel)
     {
       double per = m_snrPerErrorModel->Receive (rxPower - m_noisePower, packet->GetSize ());
@@ -926,7 +924,7 @@ SimpleWirelessNetDevice::SetDataRate (DataRate bps)
 void
 SimpleWirelessNetDevice::SetNoisePower (double noisePower)
 {
-  NS_LOG_FUNCTION_NOARGS ();
+  NS_LOG_FUNCTION (this << noisePower);
   m_noisePower = noisePower;
 }
 
