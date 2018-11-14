@@ -107,6 +107,7 @@ main (int argc, char *argv[])
   receiverDevice->SetNode (receiverNode);
   receiverDevice->SetAddress (Mac48Address::Allocate ());
   receiverDevice->SetDataRate (dataRate);
+  receiverDevice->SetNoisePower (noisePower);
   receiverDevice->TraceConnectWithoutContext ("PhyRxEnd", MakeCallback (&ReceiveTrace));
   Ptr<BpskSnrPerErrorModel> errorModel = CreateObject<BpskSnrPerErrorModel> ();
   receiverDevice->SetSnrPerErrorModel (errorModel);
