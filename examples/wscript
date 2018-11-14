@@ -50,3 +50,6 @@ def build(bld):
     obj = bld.create_ns3_program('link-performance',
         ['core', 'mobility', 'network', 'internet', 'applications', 'simple-wireless'])
     obj.source = 'link-performance.cc'
+
+    obj = bld.create_ns3_program('mm1-queue', ['core', 'network', 'stats'])
+    obj.source = 'mm1-queue.cc'
