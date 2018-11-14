@@ -58,8 +58,10 @@ cd ../../../../
 # Random number generator seed
 RngRun=1
 
-# Run Wifi and LAA both with energy detection -72.0 (no effect on Wi-Fi)
-for num in 1 2 3; do
-  ./waf --run link-performance
-  mv link-performance-rssi.dat ${outputDir}/link-performance-rssi-${num}.dat 
+minDistance=20
+maxDistance=25
+
+for distance in $(seq $minDistance $maxDistance); do
+  ./waf --run "link-performance --distance=${distance}"
+  mv link-performance-rssi.dat ${outputDir}/link-performance-rssi-${distance}.dat 
 done
