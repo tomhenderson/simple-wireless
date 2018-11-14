@@ -64,11 +64,13 @@ main (int argc, char *argv[])
   DataRate dataRate = DataRate ("1Mbps");
   double distance = 25.0; // meters
   double maxPackets = 1000;
+  uint32_t packetSize = 1024;
   double noisePower = -100; // dbm
 
   CommandLine cmd;
   cmd.AddValue("distance","the distance between the two nodes",distance);
   cmd.AddValue("maxPackets","the number of packets to send",maxPackets);
+  cmd.AddValue("packetSize","packet size in bytes",packetSize);
   cmd.AddValue("noisePower","noise power in dBm",noisePower);
   cmd.Parse (argc, argv);
 
@@ -129,7 +131,7 @@ main (int argc, char *argv[])
   UdpEchoClientHelper echoClient (interfaces.GetAddress (1), serverPort);
   echoClient.SetAttribute ("MaxPackets", UintegerValue (maxPackets));
   echoClient.SetAttribute ("Interval", TimeValue (MilliSeconds (100)));
-  echoClient.SetAttribute ("PacketSize", UintegerValue (1024));
+  echoClient.SetAttribute ("PacketSize", UintegerValue (packetSize));
 
   ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
   clientApps.Start (Seconds (2.0));
