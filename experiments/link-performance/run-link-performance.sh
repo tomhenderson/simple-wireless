@@ -16,8 +16,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
-# Authors: Tom Henderson <tomh@tomh.org> and Nicola Baldo <nbaldo@cttc.es>
-#
+
+# This program runs the link-performance example for different configurations
+# and produces a plot of PER vs. the parameter under test.  The current
+# version steps through the distance between two devices, but other parameters
+# can be substituted for distance.
+
+# Results will be stored in a timestamped 'results' directory
 
 control_c()
 {
@@ -34,23 +39,13 @@ if test ! -f ../../../../waf ; then
     exit 1
 fi
 
-outputDir=`pwd`/results
-if [ -d $outputDir ] && [ "$1" != "-a" ]; then
-    echo "$outputDir directory exists; exiting!"
-    echo ""
-    echo "Pass the '-a' option if you want to append; else move results/ out of the way"
-    echo ""
-    exit 1
-else
-    mkdir -p "${outputDir}"
-fi
-
-if [ -d $outputDir ] && [ "$1" == "-a" ]; then
-    echo "Appending results to existing results/ directory"
-fi
-
 set -x
 set -o errexit
+
+dirname=link-performance
+resultsDir=`pwd`/results/$dirname-`date +%Y%m%d-%H%M%S`
+experimentDir=`pwd`
+mkdir -p ${resultsDir}
 
 # need this as otherwise waf won't find the executables
 cd ../../../../
@@ -58,10 +53,35 @@ cd ../../../../
 # Random number generator seed
 RngRun=1
 
-minDistance=20
-maxDistance=25
+plotName="link-performance-summary.pdf"
+minDistance=25
+maxDistance=115
+stepSize=5
+maxPackets=1000
+noisePower=-75
 
-for distance in $(seq $minDistance $maxDistance); do
-  ./waf --run "link-performance --distance=${distance}"
-  mv link-performance-rssi.dat ${outputDir}/link-performance-rssi-${distance}.dat 
+./waf build
+for distance in `seq $minDistance $stepSize $maxDistance`; do
+  ./waf --run "link-performance --maxPackets=${maxPackets} --noisePower=${noisePower} --distance=${distance} --metadata=${distance}"
 done
+
+mv link-performance-summary.dat ${experimentDir} 
+rm -rf link-performance-rssi.dat
+
+cd ${experimentDir}
+
+if [[ ! -f ../utils/plot-lines-with-error-bars.py ]]; then
+  echo 'plot file not found, exiting...'
+  exit
+fi
+
+# Specify where the columns of data are to plot.  Here, the xcolumn data
+# (distance) is in column 5, the y column data (PER) in column 3, and the
+# length of the error bar is in column 4 
+/usr/bin/python ../utils/plot-lines-with-error-bars.py --title='PER vs. distance' --xlabel='distance (m)' --ylabel='Packet Error Ratio (PER)' --xcol=5 --ycol=3 --yerror=4 --fileName=link-performance-summary.dat --plotName=${plotName}
+
+# Copy files to the results directory
+mv $plotName ${resultsDir} 
+mv link-performance-summary.dat ${resultsDir} 
+cp $0 ${resultsDir}
+cp ../utils/plot-lines-with-error-bars.py ${resultsDir}

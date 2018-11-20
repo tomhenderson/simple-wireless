@@ -35,6 +35,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <cmath>
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -50,11 +51,43 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE ("LinkPerformanceExample");
 
 std::ofstream g_fileRssi;
+std::ofstream g_fileSummary;
+uint64_t g_numPacketsSent = 0;
+uint64_t g_numPacketsReceived = 0;
+uint64_t g_numPacketsDropped = 0;
+uint64_t g_maxPackets = 0;
 
 void
-ReceiveTrace (Ptr<const Packet> p, double rxPower, Mac48Address from)
+TransmitTrace (Ptr<const Packet> p, Mac48Address from, Mac48Address to, uint16_t proto)
+{
+  g_numPacketsSent++;
+}
+
+void
+PhyReceiveTrace (Ptr<const Packet> p, double rxPower, Mac48Address from)
 {
   g_fileRssi << Simulator::Now ().GetSeconds () << " " << rxPower << std::endl;
+}
+
+void
+MacReceiveTrace (Ptr<const Packet> p)
+{
+  g_numPacketsReceived++;
+  if (g_numPacketsSent == g_maxPackets)
+    {
+      Simulator::Stop ();
+    }
+}
+
+void
+DropTrace (Ptr<const Packet> p, double rxPower, Mac48Address from)
+{
+  g_fileRssi << Simulator::Now ().GetSeconds () << " " << rxPower << std::endl;
+  g_numPacketsDropped++;
+  if (g_numPacketsSent == g_maxPackets)
+    {
+      Simulator::Stop ();
+    }
 }
 
 int
@@ -63,18 +96,25 @@ main (int argc, char *argv[])
   uint16_t serverPort = 9;
   DataRate dataRate = DataRate ("1Mbps");
   double distance = 25.0; // meters
-  double maxPackets = 1000;
   uint32_t packetSize = 1024;
   double noisePower = -100; // dbm
+  std::string metadata = "";
+
+  g_numPacketsSent = 0;
+  g_numPacketsReceived = 0;
+  g_numPacketsDropped = 0;
+  g_maxPackets = 1000;
 
   CommandLine cmd;
   cmd.AddValue("distance","the distance between the two nodes",distance);
-  cmd.AddValue("maxPackets","the number of packets to send",maxPackets);
+  cmd.AddValue("maxPackets","the number of packets to send",g_maxPackets);
   cmd.AddValue("packetSize","packet size in bytes",packetSize);
   cmd.AddValue("noisePower","noise power in dBm",noisePower);
+  cmd.AddValue("metadata","metadata about experiment run",metadata);
   cmd.Parse (argc, argv);
 
   g_fileRssi.open ("link-performance-rssi.dat", std::ofstream::out);
+  g_fileSummary.open ("link-performance-summary.dat", std::ofstream::app);
   
   Ptr<Node> senderNode = CreateObject<Node> ();
   Ptr<Node> receiverNode = CreateObject<Node> ();
@@ -102,6 +142,7 @@ main (int argc, char *argv[])
   senderDevice->SetAddress (Mac48Address::Allocate ());
   senderDevice->SetDataRate (dataRate);
   senderDevice->SetNoisePower (noisePower);
+  senderDevice->TraceConnectWithoutContext ("PhyTxBegin", MakeCallback (&TransmitTrace));
   senderNode->AddDevice (senderDevice);
   devices.Add (senderDevice);
   Ptr<SimpleWirelessNetDevice> receiverDevice = CreateObject<SimpleWirelessNetDevice> ();
@@ -110,7 +151,9 @@ main (int argc, char *argv[])
   receiverDevice->SetAddress (Mac48Address::Allocate ());
   receiverDevice->SetDataRate (dataRate);
   receiverDevice->SetNoisePower (noisePower);
-  receiverDevice->TraceConnectWithoutContext ("PhyRxEnd", MakeCallback (&ReceiveTrace));
+  receiverDevice->TraceConnectWithoutContext ("PhyRxEnd", MakeCallback (&PhyReceiveTrace));
+  receiverDevice->TraceConnectWithoutContext ("MacRx", MakeCallback (&MacReceiveTrace));
+  receiverDevice->TraceConnectWithoutContext ("PhyRxDrop", MakeCallback (&DropTrace));
   Ptr<BpskSnrPerErrorModel> errorModel = CreateObject<BpskSnrPerErrorModel> ();
   receiverDevice->SetSnrPerErrorModel (errorModel);
   receiverNode->AddDevice (receiverDevice);
@@ -126,19 +169,36 @@ main (int argc, char *argv[])
   UdpEchoServerHelper echoServer (serverPort);
   ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));
   serverApps.Start (Seconds (1.0));
-  serverApps.Stop (Seconds (10.0));
 
   UdpEchoClientHelper echoClient (interfaces.GetAddress (1), serverPort);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (maxPackets));
+  echoClient.SetAttribute ("MaxPackets", UintegerValue (g_maxPackets));
   echoClient.SetAttribute ("Interval", TimeValue (MilliSeconds (100)));
   echoClient.SetAttribute ("PacketSize", UintegerValue (packetSize));
 
   ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
   clientApps.Start (Seconds (2.0));
-  clientApps.Stop (Seconds (10.0));
 
   Simulator::Run ();
+
+  double per = static_cast<double> (g_numPacketsDropped) / g_numPacketsSent;
+  double error = 0;
+  if (per > 0 && per < 1)
+    {
+      // error bars for 95% confidence interval of a binomial distribution
+      // per +/- z * sqrt (per * (1-p)/n). Here, z = 1.96
+      error = 1.96 * sqrt (per * (1 - per)/g_numPacketsSent);
+    }
+  std::cout << "sent " << g_numPacketsSent
+            << " rcv " << g_numPacketsReceived
+            << " drop " << g_numPacketsDropped
+            << " per " << per
+            << " error " << error << std::endl;
+  g_fileSummary << g_numPacketsSent << " " << g_numPacketsReceived << " " 
+                << g_numPacketsDropped << " " << per << " "
+                << error << " " << metadata << std::endl;
+  
   Simulator::Destroy ();
   g_fileRssi.close ();
+  g_fileSummary.close ();
   return 0;
 }
