@@ -805,7 +805,7 @@ SimpleWirelessNetDevice::SendFrom (Ptr<Packet> packet, const Address& source, co
 bool
 SimpleWirelessNetDevice::EnqueuePacket (Ptr<Packet> packet, Mac48Address from, Mac48Address to, uint16_t protocolNumber, uint32_t destId)
 {
-
+  NS_LOG_FUNCTION (this << packet << from << to << protocolNumber << destId);
   if (m_queue)
     {
       // We are using queueing.
