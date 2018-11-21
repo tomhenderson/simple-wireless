@@ -30,6 +30,8 @@
 // Users may vary the following command-line arguments in addition to the
 // attributes, global values, and default values typically available:
 //
+// The default data rate of the link is 100 Mbps.
+//
 //    (to be completed)
 //
 
@@ -82,7 +84,6 @@ MacReceiveTrace (Ptr<const Packet> p)
 void
 DropTrace (Ptr<const Packet> p, double rxPower, Mac48Address from)
 {
-  g_fileRssi << Simulator::Now ().GetSeconds () << " " << rxPower << std::endl;
   g_numPacketsDropped++;
   if (g_numPacketsSent == g_maxPackets)
     {
@@ -90,11 +91,20 @@ DropTrace (Ptr<const Packet> p, double rxPower, Mac48Address from)
     }
 }
 
+void
+ReceivePacket (Ptr<Socket> socket)
+{
+  Ptr<Packet> packet;
+  while ((packet = socket->Recv ()))
+    {
+      NS_LOG_DEBUG ("Receiving " << packet->GetSize ());
+    }
+}
+
 int
 main (int argc, char *argv[])
 {
-  uint16_t serverPort = 9;
-  DataRate dataRate = DataRate ("1Mbps");
+  DataRate dataRate = DataRate ("100Mbps");
   double distance = 25.0; // meters
   uint32_t packetSize = 1024;
   double noisePower = -100; // dbm
@@ -159,24 +169,29 @@ main (int argc, char *argv[])
   receiverNode->AddDevice (receiverDevice);
   devices.Add (receiverDevice);
 
-  InternetStackHelper stack;
-  stack.Install (nodes);
+  // Packet sockets bypass the IP layer and read and write directly from
+  // the SimpleWireless devices
+  PacketSocketHelper packetSocket;
+  packetSocket.Install (nodes);
 
-  Ipv4AddressHelper address;
-  address.SetBase ("192.168.1.0", "255.255.255.0");
-  Ipv4InterfaceContainer interfaces = address.Assign (devices);
+  PacketSocketAddress socketAddr;
+  socketAddr.SetSingleDevice (senderDevice->GetIfIndex ());
+  socketAddr.SetPhysicalAddress (receiverDevice->GetAddress ());
+  socketAddr.SetProtocol (1);
 
-  UdpEchoServerHelper echoServer (serverPort);
-  ApplicationContainer serverApps = echoServer.Install (nodes.Get (1));
-  serverApps.Start (Seconds (1.0));
+  OnOffHelper onoff ("ns3::PacketSocketFactory", Address (socketAddr));
+  onoff.SetConstantRate (DataRate (81920)); // 1024 bytes every 100 ms
+  onoff.SetAttribute ("PacketSize", UintegerValue (packetSize));
+  onoff.SetAttribute ("MaxBytes", UintegerValue (g_maxPackets * packetSize));
 
-  UdpEchoClientHelper echoClient (interfaces.GetAddress (1), serverPort);
-  echoClient.SetAttribute ("MaxPackets", UintegerValue (g_maxPackets));
-  echoClient.SetAttribute ("Interval", TimeValue (MilliSeconds (100)));
-  echoClient.SetAttribute ("PacketSize", UintegerValue (packetSize));
+  ApplicationContainer apps = onoff.Install (nodes.Get (0));
+  apps.Start (Seconds (1.0));
 
-  ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
-  clientApps.Start (Seconds (2.0));
+  // Setup receiver
+  TypeId tid = TypeId::LookupByName ("ns3::PacketSocketFactory");
+  Ptr<Socket> sink = Socket::CreateSocket (nodes.Get (1), tid);
+  sink->Bind ();
+  sink->SetRecvCallback (MakeCallback (&ReceivePacket));
 
   Simulator::Run ();
 
