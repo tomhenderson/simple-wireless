@@ -108,6 +108,7 @@ main (int argc, char *argv[])
   double distance = 25.0; // meters
   uint32_t packetSize = 1024;
   double noisePower = -100; // dbm
+  double frequency = 5000000000; // Hz
   std::string metadata = "";
 
   g_numPacketsSent = 0;
@@ -120,6 +121,7 @@ main (int argc, char *argv[])
   cmd.AddValue("maxPackets","the number of packets to send",g_maxPackets);
   cmd.AddValue("packetSize","packet size in bytes",packetSize);
   cmd.AddValue("noisePower","noise power in dBm",noisePower);
+  cmd.AddValue("frequency","frequency in Hz",frequency);
   cmd.AddValue("metadata","metadata about experiment run",metadata);
   cmd.Parse (argc, argv);
 
@@ -141,7 +143,7 @@ main (int argc, char *argv[])
   mobility.Install (nodes);
 
   auto lossModel = CreateObject<FriisPropagationLossModel> ();
-  lossModel->SetFrequency (5e9);  // 5 GHz
+  lossModel->SetFrequency (frequency);
 
   NetDeviceContainer devices;
   Ptr<SimpleWirelessChannel> channel = CreateObject<SimpleWirelessChannel> ();
