@@ -47,11 +47,11 @@ public:
 private:
   /**
    * Return a PER corresponding to an SNR in dB and packet size in bytes
-   * \param snr the input SNR in dB
+   * \param snrDb the input SNR in dB
    * \param bytes the packet size in bytes
    * \returns the PER
    */
-  virtual double DoReceive (double snr, uint32_t bytes) = 0;
+  virtual double DoReceive (double snrDb, uint32_t bytes) = 0;
 };
 
 class BpskSnrPerErrorModel : public SnrPerErrorModel
@@ -67,7 +67,7 @@ public:
   virtual ~BpskSnrPerErrorModel ();
 
 private:
-  double DoReceive (double snr, uint32_t bytes);
+  double DoReceive (double snrDb, uint32_t bytes);
 };
 
 class TableSnrPerErrorModel : public SnrPerErrorModel
@@ -82,10 +82,10 @@ public:
   TableSnrPerErrorModel ();
   virtual ~TableSnrPerErrorModel ();
 
-  void AddValue (double snr, double per);
+  void AddValue (double snrDb, double per);
 
 private:
-  double DoReceive (double snr, uint32_t bytes);
+  double DoReceive (double snrDb, uint32_t bytes);
   std::map<double, double> m_perMap;
   std::pair<double, double> m_cachedValue;
 };

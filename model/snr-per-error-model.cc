@@ -50,10 +50,10 @@ SnrPerErrorModel::~SnrPerErrorModel ()
 }
 
 double
-SnrPerErrorModel::Receive (double snr, uint32_t bytes)
+SnrPerErrorModel::Receive (double snrDb, uint32_t bytes)
 { 
-  NS_LOG_FUNCTION (this << snr << bytes);
-  return DoReceive (snr, bytes);
+  NS_LOG_FUNCTION (this << snrDb << bytes);
+  return DoReceive (snrDb, bytes);
 }
 
 double
@@ -96,9 +96,11 @@ BpskSnrPerErrorModel::~BpskSnrPerErrorModel ()
 }
 
 double
-BpskSnrPerErrorModel::DoReceive (double snr, uint32_t bytes)
+BpskSnrPerErrorModel::DoReceive (double snrDb, uint32_t bytes)
 { 
-  NS_LOG_FUNCTION (this << snr << bytes);
+  NS_LOG_FUNCTION (this << snrDb << bytes);
+  double snr = std::pow (10.0, 0.1 * snrDb);
+  NS_LOG_LOGIC ("Converting SNR dB " << snrDb << " to linear " << snr);
   double ber = QFunction (sqrt(2*snr));
   return BerToPer (ber, bytes);
 }
@@ -127,54 +129,54 @@ TableSnrPerErrorModel::~TableSnrPerErrorModel ()
 }
 
 double
-TableSnrPerErrorModel::DoReceive (double snr, uint32_t bytes)
+TableSnrPerErrorModel::DoReceive (double snrDb, uint32_t bytes)
 { 
-  NS_LOG_FUNCTION (this << snr << bytes);
+  NS_LOG_FUNCTION (this << snrDb << bytes);
   // Check cached value first
-  if (m_cachedValue.first == snr)
+  if (m_cachedValue.first == snrDb)
     {
-      NS_LOG_INFO ("Returning cached value for SNR " << snr << " of PER " << m_cachedValue.second);
+      NS_LOG_INFO ("Returning cached value for SNR " << snrDb << " of PER " << m_cachedValue.second);
       return m_cachedValue.second;
     }
-  auto it = m_perMap.find (snr);
+  auto it = m_perMap.find (snrDb);
   if (it != m_perMap.end ())
     {
-      NS_LOG_INFO ("Found exact match for SNR " << snr << " of PER " << it->second);
-      m_cachedValue = std::pair<double, double> (snr, it->second);
+      NS_LOG_INFO ("Found exact match for SNR " << snrDb << " of PER " << it->second);
+      m_cachedValue = std::pair<double, double> (snrDb, it->second);
       return it->second;
     }
   else
     {
-       auto lower = m_perMap.lower_bound (snr);
+       auto lower = m_perMap.lower_bound (snrDb);
        if (lower == m_perMap.begin ())
          {
-           NS_LOG_INFO ("SNR " << snr << " is below lower bound of " << lower->first << "; returning 1");
-           m_cachedValue = std::pair<double, double> (snr, 1);
+           NS_LOG_INFO ("SNR " << snrDb << " is below lower bound of " << lower->first << "; returning 1");
+           m_cachedValue = std::pair<double, double> (snrDb, 1);
            return 1;
          } 
-       auto upper = m_perMap.upper_bound (snr);
+       auto upper = m_perMap.upper_bound (snrDb);
        if (upper == m_perMap.end ())
          {
-           NS_LOG_INFO ("SNR " << snr << " is above upper bound " << upper->first << "; returning 0");
-           m_cachedValue = std::pair<double, double> (snr, 0);
+           NS_LOG_INFO ("SNR " << snrDb << " is above upper bound " << upper->first << "; returning 0");
+           m_cachedValue = std::pair<double, double> (snrDb, 0);
            return 0;
          } 
        lower = upper; 
        lower--;
-       double per = lower->second + (snr - lower->first)/ (upper->first - lower->first) * (upper->second - lower->second);
-       NS_LOG_INFO ("SNR " << snr << " is interpolated between " << upper->first << " and " << lower->first << "; returning " << per);
-       m_cachedValue = std::pair<double, double> (snr, per);
+       double per = lower->second + (snrDb - lower->first)/ (upper->first - lower->first) * (upper->second - lower->second);
+       NS_LOG_INFO ("SNR " << snrDb << " is interpolated between " << upper->first << " and " << lower->first << "; returning " << per);
+       m_cachedValue = std::pair<double, double> (snrDb, per);
        return per;
     }
 }
 
 void
-TableSnrPerErrorModel::AddValue (double snr, double per)
+TableSnrPerErrorModel::AddValue (double snrDb, double per)
 {
-  NS_LOG_FUNCTION (this << snr << per);
+  NS_LOG_FUNCTION (this << snrDb << per);
   NS_ABORT_MSG_IF (per < 0 || per > 1, "Illegal PER value " << per);
-  NS_ABORT_MSG_IF (snr < -100 || snr > 100, "Illegal SNR value " << snr);
-  m_perMap.insert (std::pair<double, double> (snr, per));  
+  NS_ABORT_MSG_IF (snrDb < -100 || snrDb > 100, "Illegal SNR value " << snrDb);
+  m_perMap.insert (std::pair<double, double> (snrDb, per));  
 }
 
 } // namespace ns3
