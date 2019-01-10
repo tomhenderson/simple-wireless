@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2015 University of Washington
+# Copyright (c) 2015-19 University of Washington
 # Copyright (c) 2015 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
 #
 # This program is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 # version steps through the distance between two devices, but other parameters
 # can be substituted for distance.
 
-# Results will be stored in a timestamped 'results' directory
+# Results are stored in a timestamped 'results' directory
 
 control_c()
 {
@@ -39,7 +39,6 @@ if test ! -f ../../../../waf ; then
     exit 1
 fi
 
-set -x
 set -o errexit
 
 dirname=link-performance
@@ -50,23 +49,57 @@ mkdir -p ${resultsDir}
 # need this as otherwise waf won't find the executables
 cd ../../../../
 
-# Random number generator seed
+if [ -e link-performance-rssi.dat ]; then
+    echo "Remove existing file link-performance-rssi.dat from top-level directory?"
+    select yn in "Yes" "No"; do
+        case $yn in
+            Yes ) echo "Removing..."; rm -rf link-performance-rssi.dat; break;;
+            No ) echo "Exiting..."; exit;;
+        esac
+    done
+fi
+
+if [ -e link-performance-summary.dat ]; then
+    echo "Removing existing file link-performance-summary.dat from top-level directory?"
+    select yn in "Yes" "No"; do
+        case $yn in
+            Yes ) echo "Removing..."; rm -rf link-performance-summary.dat; break;;
+            No ) echo "Exiting..."; exit;;
+        esac
+    done
+fi
+
+# Random number generator run number
 RngRun=1
 
-plotName="link-performance-summary.pdf"
-minDistance=25
-maxDistance=115
-stepSize=5
-maxPackets=1000
-noisePower=-75
+plotName='link-performance-per-vs-distance.pdf'
+plotTitle='PER vs. distance'
 
-./waf build
+# Vary the number of packets per trial here
+maxPackets=1000
+# Transmit power is specified in units of dBm (decibles relative to 1 mW)
+# A value of 0 equals 1 mW
+transmitPower=0
+# Noise power is specified in units of dBm (decibels relative to 1 mW)
+noisePower=-90
+
+# If stepping regularly through a distance range, configure here
+minDistance=30
+maxDistance=80
+stepSize=5
+# Alternatively, the following kind of for loop can be used to specify 
+# the specific values to step through (varying step size)
+# for distance in 45 50 55 60 65 70 75 80; do
+
+# Echo remaining commands to standard output, to track progress
+set -x
 for distance in `seq $minDistance $stepSize $maxDistance`; do
-  ./waf --run "link-performance --maxPackets=${maxPackets} --noisePower=${noisePower} --distance=${distance} --metadata=${distance}"
+  ./waf --run "link-performance --maxPackets=${maxPackets} --transmitPower=${transmitPower} --noisePower=${noisePower} --distance=${distance} --metadata=${distance} --RngRun=${RngRun}"
 done
 
+# Move files from top level directory to the experiments directory
 mv link-performance-summary.dat ${experimentDir} 
-rm -rf link-performance-rssi.dat
+mv link-performance-rssi.dat ${experimentDir}
 
 cd ${experimentDir}
 
@@ -78,10 +111,11 @@ fi
 # Specify where the columns of data are to plot.  Here, the xcolumn data
 # (distance) is in column 5, the y column data (PER) in column 3, and the
 # length of the error bar is in column 4 
-/usr/bin/python ../utils/plot-lines-with-error-bars.py --title='PER vs. distance' --xlabel='distance (m)' --ylabel='Packet Error Ratio (PER)' --xcol=5 --ycol=3 --yerror=4 --fileName=link-performance-summary.dat --plotName=${plotName}
+/usr/bin/python ../utils/plot-lines-with-error-bars.py --title="${plotTitle}" --xlabel='distance (m)' --ylabel='Packet Error Ratio (PER)' --xcol=5 --ycol=3 --yerror=4 --fileName=link-performance-summary.dat --plotName=${plotName}
 
-# Copy files to the results directory
+# Move and copy files to the results directory
 mv $plotName ${resultsDir} 
 mv link-performance-summary.dat ${resultsDir} 
+mv link-performance-rssi.dat ${resultsDir} 
 cp $0 ${resultsDir}
 cp ../utils/plot-lines-with-error-bars.py ${resultsDir}
