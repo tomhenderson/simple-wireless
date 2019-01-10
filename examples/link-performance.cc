@@ -108,6 +108,7 @@ main (int argc, char *argv[])
   double distance = 25.0; // meters
   uint32_t packetSize = 1024;
   double noisePower = -100; // dbm
+  double transmitPower = 16; // dbm
   double frequency = 5000000000; // Hz
   std::string metadata = "";
 
@@ -120,6 +121,7 @@ main (int argc, char *argv[])
   cmd.AddValue("distance","the distance between the two nodes",distance);
   cmd.AddValue("maxPackets","the number of packets to send",g_maxPackets);
   cmd.AddValue("packetSize","packet size in bytes",packetSize);
+  cmd.AddValue("transmitPower","transmit power in dBm",transmitPower);
   cmd.AddValue("noisePower","noise power in dBm",noisePower);
   cmd.AddValue("frequency","frequency in Hz",frequency);
   cmd.AddValue("metadata","metadata about experiment run",metadata);
@@ -153,6 +155,7 @@ main (int argc, char *argv[])
   senderDevice->SetNode (senderNode);
   senderDevice->SetAddress (Mac48Address::Allocate ());
   senderDevice->SetDataRate (dataRate);
+  senderDevice->SetAttribute ("TxPower", DoubleValue (transmitPower));
   senderDevice->SetNoisePower (noisePower);
   senderDevice->TraceConnectWithoutContext ("PhyTxBegin", MakeCallback (&TransmitTrace));
   senderNode->AddDevice (senderDevice);
